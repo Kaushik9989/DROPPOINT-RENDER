@@ -1,0 +1,70 @@
+<% layout("/layouts/boilerplate") %>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <h3 class="mb-4 fw-bold">💳 Step 3: Payment Option</h3>
+                <form action="/send/step3" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Who Pays for This Parcel?</label>
+                        <select name="paymentOption" class="form-select" required>
+                            <option value="sender_pays">Sender Pays</option>
+                            <option value="receiver_pays">Receiver Pays</option>
+                        </select>
+                        <small class=" d-block mt-2" style="color: red;">
+                            If receiver pays, the locker will be booked after they complete the payment within 2 hours.
+                        </small>
+                    </div>
+
+                    <button class="btn btn-success w-100">Generate Drop QR</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+  let isFormSubmitted = false;
+
+  // If user tries to go back or refresh
+  window.addEventListener("beforeunload", (e) => {
+    if (!isFormSubmitted) {
+      e.preventDefault();
+      e.returnValue = "Your parcel will be deleted if you leave this page.";
+    }
+  });
+
+  // On form submit, don't show warning
+  document.querySelectorAll("form").forEach(form => {
+    form.addEventListener("submit", () => {
+      isFormSubmitted = true;
+    });
+  });
+
+  // If user clicks browser back button or navigates away
+  window.addEventListener("popstate", () => {
+    const confirmLeave = confirm("Going back will delete this parcel. Are you sure?");
+    if (!confirmLeave) {
+      history.pushState(null, '', location.href); // Stay on the page
+    } else {
+      // Optionally trigger parcel deletion here using AJAX
+    }
+  });
+
+  // Push a dummy state to detect back
+  history.pushState(null, '', location.href);
+</script>
+
+ <script>
+  function trackUserAction(step, method = 'pageview') {
+    fetch('/analytics/user-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        step,
+        method,
+        path: window.location.pathname
+      })
+    });
+  }
+</script>
+<script>
+  trackUserAction('payment_stage');
+</script>

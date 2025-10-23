@@ -1,0 +1,90 @@
+<% layout("/layouts/boilerplate") %>
+
+<div class="container py-5">
+  <h2 class="mb-4 fw-bold"><i class="bi bi-person-circle me-2"></i> Profile Overview</h2>
+
+  <!-- Profile Card -->
+  <div class="card shadow-sm rounded-4 mb-5 border-0">
+    <div class="card-body">
+      <h4 class="fw-semibold mb-2"><%= user.username %></h4>
+      <p class="mb-1"><i class="bi bi-envelope me-2"></i><strong>Email:</strong> <%= user.email %></p>
+      <p><i class="bi bi-telephone me-2"></i><strong>Phone:</strong> <%= user.phone || 'N/A' %></p>
+    </div>
+  </div>
+
+  <!-- Incoming Parcels -->
+  <h3 class="mb-3 mt-5 fw-semibold">📬 Parcels To Be Collected</h3>
+  <% if (!user.parcels || user.parcels.length === 0) { %>
+    <div class="alert alert-info">No parcels to collect.</div>
+  <% } else { %>
+    <div class="table-responsive mb-5">
+      <table class="table table-hover align-middle shadow-sm rounded-4 overflow-hidden">
+        <thead class="table-light">
+          <tr>
+            <th>From</th>
+            <th>Locker ID</th>
+            <th>Compartment</th>
+            <th>Dropped At</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% user.parcels.forEach(p => { %>
+            <tr>
+              <td><%= p.senderName || 'Unknown' %></td>
+              <td><span class="badge bg-primary-subtle text-primary fw-semibold"> <%= p.lockerId %> </span></td>
+              <td><%= p.compartmentId %></td>
+              <td><%= new Date(p.droppedAt).toLocaleString() %></td>
+              <td>
+                <%= p.status %>
+                <% if (p.status === "Waiting for Pickup") { %>
+                  <span class="badge bg-info text-dark ms-1">Ready</span>
+                <% } %>
+              </td>
+              <td>
+                <a href="/locker/directions/<%= p.lockerId %>/<%= p.compartmentId %>" class="btn btn-sm btn-outline-primary">
+                  📍 Directions
+                </a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+  <!-- Booking History -->
+  <h3 class="mb-3 fw-semibold">📦 Booking History</h3>
+  <% if (bookings.length === 0) { %>
+    <div class="alert alert-secondary">No bookings found.</div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle shadow-sm rounded-4 overflow-hidden">
+        <thead class="table-light">
+          <tr>
+            <th>Locker ID</th>
+            <th>Compartment</th>
+            <th>Booking Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% bookings.forEach(b => { %>
+            <tr>
+              <td><span class="badge bg-secondary-subtle text-dark"><%= b.lockerId %></span></td>
+              <td><%= b.compartmentId %></td>
+              <td><%= new Date(b.bookingTime).toLocaleString() %></td>
+              <td>
+                <%= b.status %>
+                <% if (!b.isDelivered && b.status === "Booked") { %>
+                  <span class="badge bg-warning text-dark ms-1">Pending Delivery</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
