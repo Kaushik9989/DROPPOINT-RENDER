@@ -2820,6 +2820,241 @@ app.post("/:parcelId/extend/create-order", async (req, res) => {
   }
 });
 
+
+async function createPaymentLinkINR(amountINR, description, customerPhone, referenceId) {
+  const payload = {
+    amount: Math.round(amountINR * 100), // Razorpay uses paise
+    currency: "INR",
+    description,
+    reference_id: referenceId,
+    customer: {
+      contact: customerPhone
+    },
+    notify: {
+      sms: true,
+      email: false
+    },
+    reminder_enable: true,
+    callback_url: `${process.env.BASE_URL}/api/extensions/confirm?ref=${encodeURIComponent(referenceId)}`,
+    callback_method: "get", // not using webhooks; this gives user an optional redirect
+  };
+  const link = await razorpay.paymentLink.create(payload);
+  return link; // { id, short_url, status, ... }
+}
+
+
+// ---------- Build the WhatsApp text with quick links ----------
+
+function ratePerHour(size) {
+  switch (size) {
+    case "small":  return 10;
+    case "medium": return 20;
+    case "large":  return 30;
+    default:       return 20;
+  }
+}
+function calcAmountINR(size, hours) {
+  return ratePerHour(size) * hours;
+}
+
+
+app.get("/api/parcels/:parcelId/extend", async (req, res) => {
+  try {
+    const { parcelId } = req.params;
+    const hours = Math.max(1, parseInt(req.query.hours || "1", 10));
+    const parcel = await Parcel2.findById(parcelId);
+    if (!parcel) return res.status(404).render("error", { message: "Parcel not found." });
+
+    // choose who pays: default to receiver if present else sender
+    const payTo = (parcel.paymentOption === "receiver_pays" && parcel.receiverPhone)
+      ? parcel.receiverPhone
+      : (parcel.senderPhone || parcel.receiverPhone);
+
+    if (!payTo) return res.status(400).render("error", { message: "No phone number on parcel." });
+
+    const amountINR = calcAmountINR(parcel.size, hours);
+    const referenceId = `EXT-${parcel.customId || parcel._id}-${Date.now()}`;
+
+    // record extension request
+    const ext = await Extension.create({
+      parcelId: parcel._id,
+      hours,
+      ratePerHour: ratePerHour(parcel.size),
+      amount: amountINR,
+      whatsAppTo: payTo,
+      referenceId,
+    });
+
+    // create payment link
+    const link = await createPaymentLinkINR(
+      amountINR,
+      `Locker time extension: ${hours}h for ${parcel.customId || parcel.accessCode}`,
+      payTo,
+      referenceId
+    );
+
+    ext.paymentLinkId = link.id;
+    ext.paymentLinkShortUrl = link.short_url;
+    ext.status = "issued";
+    await ext.save();
+
+    // Send the link back via WhatsApp (nice UX)
+    let whatsappResult = { success: false, info: null };
+    try {
+      const message = await client.messages.create({
+        to: `whatsapp:+91${payTo}`,
+        from: 'whatsapp:+15558076515',
+        contentSid: 'HX7044cd35733cf55d58269aad267c1609',
+        contentVariables: JSON.stringify({
+          1: `${amountINR}`,
+          2: `${hours}`,
+          3: `${link.short_url}`
+        })
+      });
+      console.log('✅ WhatsApp Message Sent:', message.sid);
+      whatsappResult = { success: true, info: message.sid };
+    } catch (waErr) {
+      console.error('❌ WhatsApp Message Error:', waErr);
+      whatsappResult = { success: false, info: waErr.message || String(waErr) };
+    }
+
+    // render EJS view with all useful data
+    res.render("extension-created", {
+      title: "Extension Created",
+      parcel,
+      ext,
+      link,
+      whatsappResult,
+      message: "Payment link created and WhatsApp attempted. If paid, extension will be applied automatically."
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).render("error", { message: "Failed to create extension link." });
+  }
+});
+
+app.get("/api/extensions/confirm", async (req, res) => {
+  try {
+    const { ref } = req.query;
+    if (!ref) return res.status(400).send("Missing ref.");
+    // Quick poll all 'issued' requests created recently; narrow search if you store referenceId
+    const pending = await Extension.find({ status: "issued" }).sort({ createdAt: -1 }).limit(10);
+    await Promise.all(pending.map(checkAndApplyPaymentForExtension));
+       res.render("confirm-extension", {
+      title: "Extension Payment Confirmation",
+      ref,
+      results,
+      message: "Checked payment status. If paid, extension has been applied successfully.",
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error confirming payment.");
+  }
+});
+
+
+async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
+  if (!ext || ext.status !== "issued" || !ext.paymentLinkId) return null;
+  try {
+    const link = await razorpay.paymentLink.fetch(ext.paymentLinkId);
+    // statuses: created/issued/paid/cancelled/expired
+    if (link.status === "paid") {
+      // fetch fresh parcel just to inspect
+      const parcel = await Parcel2.findById(ext.parcelId).exec();
+
+      if (!parcel) {
+        // parcel missing — mark extension expired and persist
+        ext.status = "expired";
+        await ext.save();
+        console.warn(`Parcel ${ext.parcelId} not found. Marked extension expired.`);
+        return ext;
+      }
+
+      // debug log to inspect missing required fields
+      console.debug("Fetched parcel for extension:", {
+        id: parcel._id.toString(),
+        hasSenderId: !!parcel.senderId,
+        expiresAt: parcel.expiresAt,
+      });
+
+      // ensure expiresAt exists
+      if (!parcel.expiresAt) {
+        console.error(`Parcel ${parcel._id} missing expiresAt — cannot extend.`);
+        // optionally mark extension failed/expired
+        ext.status = "expired";
+        await ext.save();
+        return ext;
+      }
+
+      const oldExpiry = parcel.expiresAt;
+      const newExpiry = new Date(oldExpiry.getTime() + (ext.hours * 60 * 60 * 1000));
+
+      // Use findByIdAndUpdate to avoid validation errors from other required fields
+      const updated = await Parcel2.findByIdAndUpdate(
+        parcel._id,
+        {
+          $set: {
+            expiresAt: newExpiry,
+            paymentStatus: "completed",
+            razorpayPaymentLinkId: link.id,
+            razorpayPaymentLinkStatus: link.status,
+            razorpayPaymentLinkShortUrl: link.short_url,
+          },
+        },
+        { new: true } // return updated doc
+      ).exec();
+
+      if (!updated) {
+        console.error("Failed to update parcel after link paid:", parcel._id);
+        // mark ext as expired/failed
+        ext.status = "expired";
+        await ext.save();
+        return ext;
+      }
+
+      // update extension record
+      ext.status = "paid";
+      ext.paidAt = new Date();
+      await ext.save();
+
+      // WhatsApp notify — ensure payTo is provided
+      const payTo = payToFallback || parcel.phone || parcel.senderPhone;
+      if (!payTo) {
+        console.warn("No payTo available for WhatsApp notification. Skipping message.");
+        return ext;
+      }
+
+      const prettyOld = oldExpiry.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+      const prettyNew = newExpiry.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+      try {
+        await client.messages.create({
+          to: `whatsapp:+91${payTo}`,
+          from: 'whatsapp:+15558076515',
+          contentSid: 'HX65b3ce58a6ac5490574009526472bed8',
+          contentVariables: JSON.stringify({
+            1: `${prettyOld}`,
+            2: `${prettyNew}`,
+          })
+        });
+        console.log('✅ WhatsApp Message Sent for parcel', parcel._id.toString());
+      } catch (waErr) {
+        console.error('❌ WhatsApp Message Error:', waErr);
+      }
+
+      return ext;
+    } else if (link.status === "cancelled" || link.status === "expired") {
+      ext.status = link.status;
+      await ext.save();
+      return ext;
+    }
+  } catch (err) {
+    console.error("poll error", err?.message || err);
+    // optionally rethrow or handle as needed
+    return null;
+  }
+}
+
 async function sendWhatsAppMessage(to, parcel) {
   try {
     // compute expiry and rates
@@ -2850,7 +3085,7 @@ async function sendWhatsAppMessage(to, parcel) {
     const message = await client.messages.create({
       from: 'whatsapp:+15558076515',             // e.g., 'whatsapp:+14155238886'
       to: `whatsapp:+91${to}`,                               // e.g., 'whatsapp:+91XXXXXXXXXX'
-      contentSid: 'HX7e34c782288b4ff998be471e19f8f920', // Twilio Content SID (HSxxxxxxxxxx)
+      contentSid: 'HX353b0adb24a8a1ef064c8e789f6bf12c', // Twilio Content SID (HSxxxxxxxxxx)
       contentVariables: JSON.stringify({
         1: `${parcel.accessCode}`,
         2: `${parcel.lockerId}` || "N/A",
