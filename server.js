@@ -2863,6 +2863,7 @@ app.get("/api/parcels/:parcelId/extend", async (req, res) => {
     const { parcelId } = req.params;
     const hours = Math.max(1, parseInt(req.query.hours || "1", 10));
     const parcel = await Parcel2.findById(parcelId);
+    if (parcel.status == "picked") return res.status(404).render("error",{message : "Parcel already collected"});
     if (!parcel) return res.status(404).render("error", { message: "Parcel not found." });
 
     // choose who pays: default to receiver if present else sender
