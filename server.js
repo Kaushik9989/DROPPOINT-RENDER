@@ -2937,10 +2937,15 @@ app.get("/api/extensions/confirm", async (req, res) => {
   try {
     const { ref } = req.query;
     if (!ref) return res.status(400).send("Missing ref.");
-    // Quick poll all 'issued' requests created recently; narrow search if you store referenceId
-    const pending = await Extension.find({ status: "issued" }).sort({ createdAt: -1 }).limit(10);
-    await Promise.all(pending.map(checkAndApplyPaymentForExtension));
-       res.render("confirm-extension", {
+
+    const pending = await Extension.find({ status: "issued" })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Collect results of all payment checks
+    const results = await Promise.all(pending.map(checkAndApplyPaymentForExtension));
+
+    res.render("confirm-extension", {
       title: "Extension Payment Confirmation",
       ref,
       results,
@@ -2955,32 +2960,44 @@ app.get("/api/extensions/confirm", async (req, res) => {
 
 async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
   if (!ext || ext.status !== "issued" || !ext.paymentLinkId) return null;
+
+  // defensive normalize
+  const rawId = String(ext.paymentLinkId || "").trim();
+  if (!rawId) {
+    console.warn("paymentLinkId empty after trim; marking extension invalid:", ext._id?.toString());
+    ext.status = "invalid";
+    await ext.save().catch(() => {});
+    return null;
+  }
+
+  // basic sanity: Razorpay payment link IDs usually start with 'plink_' (helpful hint)
+  if (!/^plink_/.test(rawId)) {
+    console.warn("paymentLinkId missing expected prefix 'plink_':", rawId);
+    // not fatal — we still attempt fetch but log for debugging
+  }
+
   try {
-    const link = await razorpay.paymentLink.fetch(ext.paymentLinkId);
+    console.debug("Fetching razorpay payment link", {
+      extId: ext._id?.toString(),
+      paymentLinkId: rawId,
+      nodeEnv: process.env.NODE_ENV,
+    });
+
+    const link = await razorpay.paymentLink.fetch(encodeURIComponent(rawId));
+
     // statuses: created/issued/paid/cancelled/expired
     if (link.status === "paid") {
-      // fetch fresh parcel just to inspect
       const parcel = await Parcel2.findById(ext.parcelId).exec();
 
       if (!parcel) {
-        // parcel missing — mark extension expired and persist
         ext.status = "expired";
         await ext.save();
         console.warn(`Parcel ${ext.parcelId} not found. Marked extension expired.`);
         return ext;
       }
 
-      // debug log to inspect missing required fields
-      console.debug("Fetched parcel for extension:", {
-        id: parcel._id.toString(),
-        hasSenderId: !!parcel.senderId,
-        expiresAt: parcel.expiresAt,
-      });
-
-      // ensure expiresAt exists
       if (!parcel.expiresAt) {
         console.error(`Parcel ${parcel._id} missing expiresAt — cannot extend.`);
-        // optionally mark extension failed/expired
         ext.status = "expired";
         await ext.save();
         return ext;
@@ -2989,7 +3006,6 @@ async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
       const oldExpiry = parcel.expiresAt;
       const newExpiry = new Date(oldExpiry.getTime() + (ext.hours * 60 * 60 * 1000));
 
-      // Use findByIdAndUpdate to avoid validation errors from other required fields
       const updated = await Parcel2.findByIdAndUpdate(
         parcel._id,
         {
@@ -3001,23 +3017,20 @@ async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
             razorpayPaymentLinkShortUrl: link.short_url,
           },
         },
-        { new: true } // return updated doc
+        { new: true }
       ).exec();
 
       if (!updated) {
         console.error("Failed to update parcel after link paid:", parcel._id);
-        // mark ext as expired/failed
         ext.status = "expired";
         await ext.save();
         return ext;
       }
 
-      // update extension record
       ext.status = "paid";
       ext.paidAt = new Date();
       await ext.save();
 
-      // WhatsApp notify — ensure payTo is provided
       const payTo = payToFallback || parcel.phone || parcel.senderPhone;
       if (!payTo) {
         console.warn("No payTo available for WhatsApp notification. Skipping message.");
@@ -3043,14 +3056,32 @@ async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
       }
 
       return ext;
+
     } else if (link.status === "cancelled" || link.status === "expired") {
       ext.status = link.status;
       await ext.save();
       return ext;
+    } else {
+      // created/issued - still pending
+      console.debug("Payment link not paid yet:", { id: link.id, status: link.status });
+      return ext;
     }
   } catch (err) {
+    // log detailed response body from Razorpay if available (very useful)
+    if (err && err.response && err.response.data) {
+      console.error("Razorpay error response:", JSON.stringify(err.response.data, null, 2));
+      // handle specific "id does not exist" case
+      const desc = (err.response.data.error && err.response.data.error.description) || err.response.data.description || "";
+      if (/does not exist/i.test(desc) || /id provided does not exist/i.test(desc)) {
+        console.warn("Payment link id does not exist - marking extension invalid/failed", { paymentLinkId: rawId, extId: ext._id?.toString() });
+        ext.status = "invalid"; // or "failed" — pick what fits your domain
+        await ext.save().catch(e => console.error("Failed to save ext after invalid:", e));
+        return ext;
+      }
+    }
+
+    // otherwise log and return null (or rethrow if you prefer)
     console.error("poll error", err?.message || err);
-    // optionally rethrow or handle as needed
     return null;
   }
 }
