@@ -4,7 +4,9 @@
       <div class="d-flex justify-content-between align-items-start">
         <div>
           <p class="fw-semibold mb-1 fs-6">To: <%= parcel.receiverName %></p>
-          <p class="text-muted mb-2" style="font-size: 0.9rem;"><%= parcel.description || "No description" %></p>
+          <p class="text-muted mb-2" style="font-size: 0.9rem;">
+            <%= parcel.description || "No description" %>
+          </p>
         </div>
         <span class="badge status-badge <%= parcel.status === 'picked' ? 'bg-success' : parcel.status === 'awaiting_drop' ? 'bg-warning' : parcel.status === 'awaiting_pick' ? 'bg-danger' : 'bg-danger' %> px-3 py-1">
           <%= parcel.status.charAt(0).toUpperCase() + parcel.status.slice(1).replace(/_/g, " ") %>
@@ -22,8 +24,22 @@
         Compartment: <strong><%= parcel.UsercompartmentId || 'N/A' %></strong>
       </p>
 
+      <% 
+        // Format expiry date with weekday and time in IST
+        const expiryDate = new Date(parcel.expiresAt);
+        const formattedExpiry = expiryDate.toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      %>
+
       <p class="mb-1 text-muted" style="font-size: 0.85rem;">
-        Expires: <%= new Date(parcel.expiresAt).toLocaleString() %>
+        Expires: <%= formattedExpiry %>
       </p>
 
       <p class="mb-0" style="font-size: 0.9rem;">
@@ -31,20 +47,20 @@
       </p>
 
       <div class="text-end mt-3 d-flex justify-content-end gap-2">
-  <a href="/mobile/parcel/<%= parcel._id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; padding: 0.4rem 1rem;">
-    Details
-  </a>
+        <a href="/mobile/parcel/<%= parcel._id %>" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; padding: 0.4rem 1rem;">
+          Details
+        </a>
 
-  <% if (parcel.status === 'awaiting_drop' || parcel.status === 'awaiting_pick') { %>
-    <a href="/mobile/incoming/<%= parcel._id %>/qr" class="btn btn-sm btn-outline-success" style="border-radius: 8px; padding: 0.4rem 1rem;">
-      QR Code
-    </a>
-  <% } else if (parcel.status === 'awaiting_payment' && parcel.razorpayPaymentLink) { %>
-    <a href="<%= parcel.razorpayPaymentLink %>" target="_blank" class="btn btn-sm btn-warning text-white" style="border-radius: 8px; padding: 0.4rem 1rem;">
-      💳 Pay Now
-    </a>
-  <% } %>
-</div>
+        <% if (parcel.status === 'awaiting_drop' || parcel.status === 'awaiting_pick') { %>
+          <a href="/mobile/incoming/<%= parcel._id %>/qr" class="btn btn-sm btn-outline-success" style="border-radius: 8px; padding: 0.4rem 1rem;">
+            QR Code
+          </a>
+        <% } else if (parcel.status === 'awaiting_payment' && parcel.razorpayPaymentLink) { %>
+          <a href="<%= parcel.razorpayPaymentLink %>" target="_blank" class="btn btn-sm btn-warning text-white" style="border-radius: 8px; padding: 0.4rem 1rem;">
+            💳 Pay Now
+          </a>
+        <% } %>
+      </div>
 
     </div>
   </div>
