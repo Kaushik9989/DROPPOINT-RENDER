@@ -2720,30 +2720,43 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
 
 //// STORE VIA LOCKER CATALOGUE
 
-app.get("/mobile/send/select-locker/:lockerId",isAuthenticated, async(req,res) =>{
+app.get("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.redirect("/login");
 
+    const lockerId = req.params.lockerId;
+    const locker = await Locker.findOne({ lockerId }).lean();
 
+    if (!locker) {
+      req.flash("error", "Locker Not Found");
+      return res.redirect("/mobile/store");
+    }
 
-     const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.redirect("/login");
-  
-
-  const lockerId = req.params.lockerId;
-  const locker = await Locker.findOne({lockerId : lockerId});
-
-  if(!locker){
-    req.flash("error","Locker Not Found");
-    return res.redirect("/mobile/store");
-  }
+    // If user's phone is not linked, redirect to phone verification
     if (!user.phone) {
-     
-       req.session.pendingRedirectAfterPhoneLink = `/mobile/send/select-locker/${lockerId}`;
+      req.session.pendingRedirectAfterPhoneLink = `/mobile/send/select-locker/${lockerId}`;
       req.flash("error", "Please verify your phone number to continue.");
       return res.redirect("/mobile/link-phone");
     }
 
-  res.render("mobile/parcel/select-size", {locker});
+    // ✅ Filter available compartments (isBooked == false)
+    const availableCompartments = locker.compartments.filter(c => !c.isBooked);
+
+    // Render EJS and pass locker + available compartments
+    res.render("mobile/parcel/select-size", {
+      locker,
+      availableCompartments,
+      // groupedBySize, // uncomment if you plan to use grouped display
+    });
+
+  } catch (err) {
+    console.error("Error selecting locker:", err);
+    req.flash("error", "An error occurred. Please try again.");
+    res.redirect("/mobile/store");
+  }
 });
+
 
 
 app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
@@ -2863,7 +2876,8 @@ app.get("/api/parcels/:parcelId/extend", async (req, res) => {
     const { parcelId } = req.params;
     const hours = Math.max(1, parseInt(req.query.hours || "1", 10));
     const parcel = await Parcel2.findById(parcelId);
-    if (parcel.status == "picked") return res.status(404).render("error",{message : "Parcel already collected"});
+   
+    
     if (!parcel) return res.status(404).render("error", { message: "Parcel not found." });
 
     // choose who pays: default to receiver if present else sender
@@ -2945,6 +2959,7 @@ app.get("/api/extensions/confirm", async (req, res) => {
 
     // Collect results of all payment checks
     const results = await Promise.all(pending.map(checkAndApplyPaymentForExtension));
+
 
     res.render("confirm-extension", {
       title: "Extension Payment Confirmation",
