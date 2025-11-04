@@ -1758,9 +1758,9 @@ app.post("/verify-login", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
-
-    return res.redirect("/mobileDashboard");
-
+     const redirectUrl = req.session.redirectTo || "/mobileDashboard";
+    delete req.session.redirectTo; // clean up
+  return res.redirect(redirectUrl);
   } catch (err) {
     console.error("OTP Verify Error:", err?.message || err);
     return res.render("verify-login", {
@@ -1811,9 +1811,11 @@ app.post("/set-username", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
-
+         const redirectUrl = req.session.redirectTo || "/mobileDashboard";
+    delete req.session.redirectTo; // clean up
+  return res.redirect(redirectUrl);
     
-    res.redirect("/mobileDashboard");
+    
   } catch (err) {
     res.render("set-username", {
       error: err.message,
@@ -2220,8 +2222,7 @@ app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
 });
 
 app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
-  
-  
+
     const {
     receiverName,
     receiverPhone,
@@ -2659,6 +2660,9 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
       }
 
       delete req.session.parcelDraft;
+      if(req.session.redirectTo){
+        return res.redirect(req.session.redirectTo);
+      }
       return res.redirect(`/mobile/parcel/${parcel._id}/success`);
     }
 
@@ -3246,10 +3250,12 @@ cron.schedule("*/10 * * * *", async () => {
 
 app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
       if (!req.session || !req.session.user || !req.session.user._id) {
+      req.session.redirectTo = req.originalUrl;
       return res.redirect("/login");
     }
   const user = await User.findById(req.session.user._id);
   if(!user){
+      req.session.redirectTo = req.originalUrl;
     res.redirect("/login");
   }
   const {lockerId,compartmentId} = req.params;
@@ -3286,6 +3292,10 @@ app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
       senderPhone: user.phone,
       status: { $nin: ["picked", "expired"] } // exclude finished
     }).sort({ createdAt: -1 });
+    if(candidateParcels.length === 0){
+      req.session.redirectTo = req.originalUrl;
+      res.redirect(`/mobile/send/step2?size=${compartment.size}`)
+    }
      return res.render("dropList", {
       locker,
       compartment,
@@ -3923,9 +3933,9 @@ await SessionIntent.findOneAndUpdate(
 
 
 function getEstimatedCost(size) {
-  if (size === "small") return 10;
-  if (size === "medium") return 20;
-  return 30;
+  if (size === "small") return 5;
+  if (size === "medium") return 10;
+  return 20;
 }
 
 app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
