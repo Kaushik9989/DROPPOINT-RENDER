@@ -3242,9 +3242,12 @@ cron.schedule("*/10 * * * *", async () => {
 });
 
 
-////NFC IMPLEMENTATION
+///NFC IMPLEMENTATION
 
 app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
+      if (!req.session || !req.session.user || !req.session.user._id) {
+      return res.redirect("/login");
+    }
   const user = await User.findById(req.session.user._id);
   if(!user){
     res.redirect("/login");
@@ -3317,12 +3320,10 @@ app.post("/unlock/:lockerId/:compartmentId/drop", async (req, res) => {
     const parcel = await Parcel2.findById(parcelId);
     if (!parcel) return res.status(404).send("PARCEL NOT FOUND");
 
-    // Only sender can drop the parcel (adjust if you want receiver ability)
     if (parcel.senderPhone !== user.phone) {
       return res.status(403).send("You are not authorized to drop this parcel");
     }
 
-    // Server-side size compatibility check (supports numeric or string sizes)
     const compSize = compartment.size;
     const parcelSize = parcel.size;
 
@@ -5770,8 +5771,7 @@ app.post("/user/dropoff", async (req, res) => {
     if (!locker) return res.status(404).send("Locker not found");
 
     const compartment = locker.compartments.find(
-      (c) =>
-        c.compartmentId === compartmentId &&
+      (c) =>  c.compartmentId === compartmentId &&
         c.bookingInfo?.userId?.toString() === userId.toString()
     );
 
@@ -5833,7 +5833,7 @@ app.post("/user/dropoff", async (req, res) => {
     console.log(
       `📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`
     );
-    console.log("SMS sent:", message.sid);
+    ("SMS sent:", message.sid);
 
     req.flash("success", "Compartment Unlocked, drop your parcel!!");
     res.redirect("/user/dropoff");
