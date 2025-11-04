@@ -15,7 +15,7 @@
 <body>
   <div class="container">
     <div class="card p-4 mb-4">
-      <h4>Drop parcel into Locker <strong><%= locker.lockerId %></strong> — Compartment <strong><%= compartment.compartmentId %></strong></h4>
+      <h4>Drop parcel into Locker <strong><%= locker.lockerId %></strong> — Compartment <strong><%= parseInt(compartment.compartmentId) + 1 %></strong></h4>
       <p>Compartment size: <span class="size-tag"><%= compartment.size !== undefined ? compartment.size : "unknown" %></span></p>
     </div>
 
