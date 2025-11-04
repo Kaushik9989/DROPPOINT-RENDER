@@ -3242,7 +3242,182 @@ cron.schedule("*/10 * * * *", async () => {
 });
 
 
+////NFC IMPLEMENTATION
 
+app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
+  const user = await User.findById(req.session.user._id);
+  if(!user){
+    res.redirect("/login");
+  }
+  const {lockerId,compartmentId} = req.params;
+  const locker = await Locker.findOne({lockerId : lockerId});
+  if(!locker){
+    return res.send("LOCKER NOT FOUND");
+  }
+  let compartment;
+  compartment = locker.compartments.find(
+    (c) => c.compartmentId == compartmentId
+  );
+  if(!compartment){
+    return res.send("COMPARTMENT NOT FOUND");
+  }
+
+  if(compartment.isBooked){
+    const parcel = await Parcel2.findOne(
+  { lockerId: lockerId, compartmentId: compartmentId }
+)
+.sort({ createdAt: -1 });
+    if(!parcel ){
+      return res.send("PARCEL IS NOT FOUND");
+    }
+    else if(parcel.senderPhone != user.phone || parcel.receiverPhone != user.phone){
+      return res.send("This parcel doesnt belong to you, TRY CONTACTING THE CUSTOMER SUPPORT");
+    }
+    else if(parcel.status == "picked"){
+       return res.send("PARCEL ALREADY PICKED");
+    }
+    res.render("unlockComp",{parcel});
+
+  }else{
+     const candidateParcels = await Parcel2.find({
+      senderPhone: user.phone,
+      status: { $nin: ["picked", "expired"] } // exclude finished
+    }).sort({ createdAt: -1 });
+     return res.render("dropList", {
+      locker,
+      compartment,
+      parcels: candidateParcels,
+      user
+    });
+
+  }
+
+});
+
+app.post("/unlock/:lockerId/:compartmentId/drop", async (req, res) => {
+  try {
+    if (!req.session || !req.session.user || !req.session.user._id) {
+      return res.redirect("/login");
+    }
+    const user = await User.findById(req.session.user._id);
+    if (!user) return res.redirect("/login");
+
+    const { lockerId, compartmentId } = req.params;
+    const { parcelId } = req.body;
+    if (!parcelId) return res.status(400).send("parcelId is required");
+
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).send("LOCKER NOT FOUND");
+
+    const compartment = locker.compartments.find(c => String(c.compartmentId) === String(compartmentId));
+    if (!compartment) return res.status(404).send("COMPARTMENT NOT FOUND");
+
+    if (compartment.isBooked) return res.status(400).send("COMPARTMENT ALREADY BOOKED");
+
+    const parcel = await Parcel2.findById(parcelId);
+    if (!parcel) return res.status(404).send("PARCEL NOT FOUND");
+
+    // Only sender can drop the parcel (adjust if you want receiver ability)
+    if (parcel.senderPhone !== user.phone) {
+      return res.status(403).send("You are not authorized to drop this parcel");
+    }
+
+    // Server-side size compatibility check (supports numeric or string sizes)
+    const compSize = compartment.size;
+    const parcelSize = parcel.size;
+
+let sizeCompatible = true;
+
+if (compSize && parcelSize) {
+  const sizeOrder = { small: 1, medium: 2, large: 3 }; // ranking
+
+  const compRank = sizeOrder[String(compSize).toLowerCase()];
+  const parcelRank = sizeOrder[String(parcelSize).toLowerCase()];
+
+  if (!compRank || !parcelRank) {
+    // unknown size labels → treat as not compatible
+    sizeCompatible = false;
+  } else {
+    // parcel must be <= compartment in size
+    sizeCompatible = parcelRank <= compRank;
+  }
+}
+    if (!sizeCompatible) {
+      return res.status(400).send("Parcel does not fit this compartment");
+    }
+
+    // assign parcel to locker + compartment and update statuses
+    parcel.lockerId = lockerId;
+    parcel.compartmentId = compartmentId;
+    // set status to awaiting_pick so receiver can pick it, adjust as per your flow
+    parcel.status = "awaiting_pick";
+    await parcel.save();
+
+    // mark compartment booked & persist locker
+    compartment.isBooked = true;
+    compartment.isLocked = false;
+    await locker.save();
+    // render success or redirect to unlock post page
+    return res.render("unlockPost", { parcel });
+  } catch (err) {
+    console.error("[POST /unlock/drop] Error:", err);
+    return res.status(500).send("Internal Server Error");
+  }
+});
+
+
+
+
+
+
+app.post("/unlock/:lockerId/:compartmentId", async (req, res) => {
+  try {
+    if (!req.session || !req.session.user || !req.session.user._id) {
+      return res.redirect("/login");
+    }
+
+    const user = await User.findById(req.session.user._id);
+    if (!user) return res.redirect("/login");
+
+    const { lockerId, compartmentId } = req.params;
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) return res.status(404).send("LOCKER NOT FOUND");
+
+    const compartment = locker.compartments.find(c => String(c.compartmentId) === String(compartmentId));
+    if (!compartment) return res.status(404).send("COMPARTMENT NOT FOUND");
+
+    const parcel = await Parcel2.findOne({ lockerId, compartmentId }).sort({ createdAt: -1 });
+    if (!parcel) return res.status(404).send("PARCEL NOT FOUND");
+
+    // authorization (same as GET)
+    if (parcel.senderPhone !== user.phone && parcel.receiverPhone !== user.phone) {
+      return res.status(403).send("This parcel doesn't belong to you. TRY CONTACTING CUSTOMER SUPPORT");
+    }
+
+    // business logic
+    if (parcel.status === "awaiting_drop") {
+      parcel.status = "awaiting_pick";
+      await parcel.save();
+      // render/return current state so user sees change
+      return res.render("unlockPost", { parcel });
+    } else if (parcel.status === "awaiting_pick") {
+      // mark compartment unlocked and mark parcel as picked
+      compartment.isLocked = false;
+      parcel.status = "picked";
+      compartment.isBooked = false;
+      // persist both changes: save parcel and locker
+      await parcel.save();
+      await locker.save();
+
+      return res.render("unlockPost", { parcel });
+    } else {
+      return res.status(400).send("PARCEL ALREADY PICKED");
+    }
+  } catch (err) {
+    console.error("[POST /unlock] Error:", err);
+    return res.status(500).send("Internal Server Error");
+  }
+});
 
 
 
@@ -4473,7 +4648,7 @@ app.post("/api/locker/scan", async (req, res) => {
     }
 
     // Lock the compartment
-    compartment.isLocked = true;
+    
     compartment.isBooked = true;
     compartment.currentParcelId = parcel._id;
     await locker.save();
@@ -4551,11 +4726,6 @@ app.post("/api/locker/scan", async (req, res) => {
         .json({ success: false, message: "Compartment not found." });
     }
 
-    if (!compartment.isLocked) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Compartment is already unlocked." });
-    }
 
     // Unlock compartment
     compartment.isLocked = false;
@@ -4634,7 +4804,7 @@ app.get("/drop/:accessCode", isAuthenticated, async (req, res) => {
   parcel.droppedAt = new Date();
   await parcel.save();
 
-  locker.isLocked = true;
+  
   locker.status = "occupied";
   await locker.save();
 
