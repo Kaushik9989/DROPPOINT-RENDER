@@ -2660,10 +2660,10 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
       }
 
       delete req.session.parcelDraft;
-      if(req.session.redirectTo){
-        return res.redirect(req.session.redirectTo);
-      }
-      return res.redirect(`/mobile/parcel/${parcel._id}/success`);
+      
+      const redirectTo = req.session.redirectTo || `/mobile/parcel/${parcel._id}/success`;
+      delete req.session.redirectTo;
+      return res.redirect(redirectTo);
     }
 
     // ✅ Case 2: Receiver Pays (Payment Link flow)
