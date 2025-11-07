@@ -197,11 +197,12 @@
             <div class="list-group-item <%= sizeOk ? '' : 'disabled-row' %>">
               <div class="item-top">
                 <div class="item-meta">
-                  <div><strong>Parcel ID:</strong> <%= p._id %></div>
-                  <div><strong>Receiver:</strong> <%= p.receiverPhone %></div>
+                  <div><strong>Parcel ID:</strong> <%= p.customId %></div>
+                  <div><strong>Sender:</strong> <%= p.receiverName %></div>
                   <div><strong>Status:</strong> <%= p.status %></div>
                   <div><strong>Size:</strong> <span class="small"><%= p.size !== undefined ? p.size : 'unknown' %></span></div>
                   <div class="text-muted small">Created: <%= p.createdAt ? p.createdAt.toLocaleString() : '-' %></div>
+                   <div class="text-muted small">Expires: <%= p.createdAt ? p.expiresAt.toLocaleString() : '-' %></div>
                 </div>
                 <div class="item-actions">
                   <% if (sizeOk) { %>

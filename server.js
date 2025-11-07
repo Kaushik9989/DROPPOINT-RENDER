@@ -3290,7 +3290,8 @@ app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
   }else{
      const candidateParcels = await Parcel2.find({
       senderPhone: user.phone,
-      status: { $nin: ["picked", "expired"] } // exclude finished
+      status: { $nin: ["picked", "expired","awaiting_payment","awaiting_pick"] }
+      // exclude finished
     }).sort({ createdAt: -1 });
     if(candidateParcels.length === 0){
       req.session.redirectTo = req.originalUrl;
