@@ -3288,7 +3288,7 @@ app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
     res.render("unlockComp",{parcel});
 
   }else{
-     const candidateParcels = await Parcel2.find({
+     const candidateParcels = await Parcel2.find({  
       senderPhone: user.phone,
       status: { $nin: ["picked", "expired","awaiting_payment","awaiting_pick"] }
       // exclude finished
@@ -3361,14 +3361,28 @@ if (compSize && parcelSize) {
     // assign parcel to locker + compartment and update statuses
     parcel.lockerId = lockerId;
     parcel.compartmentId = compartmentId;
+    parcel.UsercompartmentId = parseInt(compartmentId) + 1;
     // set status to awaiting_pick so receiver can pick it, adjust as per your flow
     parcel.status = "awaiting_pick";
     await parcel.save();
+    await client.messages.create({
+  to: `whatsapp:+91${parcel.senderPhone}`,
+  from: 'whatsapp:+15558076515', // your approved Twilio number
+  contentSid: 'HX6d04d653952c1446f0f7489c408e42a8',
+  contentVariables: JSON.stringify({
+    1: parcel.sendName,
+    2: parcel.lockerId,
+    3: parcel.UsercompartmentId,
+    
+  })
+})
 
     // mark compartment booked & persist locker
     compartment.isBooked = true;
     compartment.isLocked = false;
     await locker.save();
+
+
     // render success or redirect to unlock post page
     return res.render("unlockPost", { parcel });
   } catch (err) {
