@@ -150,9 +150,10 @@
         </div>
       </div>
       <div class="d-grid mb-3">
-        <button type="submit" class="btn btn-orange">
-          <i class="fas fa-sign-in-alt me-2"></i>Get Started with Phone
-        </button>
+<button type="submit" class="btn btn-orange" id="startPhoneBtn">
+  <i class="fas fa-sign-in-alt me-2"></i>Get Started with Phone
+</button>
+
       </div>
     </form>
 
@@ -184,6 +185,19 @@
     });
   }
 </script>
+<script>
+  const form = document.querySelector("form");  // or give your form an ID
+  const btn = document.getElementById("startPhoneBtn");
+
+  form.addEventListener("submit", () => {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <span class="spinner-border spinner-border-sm me-2"></span>
+      Processing...
+    `;
+  });
+</script>
+
   <script>
   trackUserAction('login_page');
 
