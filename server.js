@@ -3376,6 +3376,18 @@ if (compSize && parcelSize) {
     
   })
 })
+    await client.messages.create({
+  to: `whatsapp:+91${parcel.senderPhone}`,
+  from: 'whatsapp:+15558076515', // your approved Twilio number
+  contentSid: 'HX6d04d653952c1446f0f7489c408e42a8',
+  contentVariables: JSON.stringify({
+    1: parcel.sendName,
+    2: parcel.lockerId,
+    3: parcel.UsercompartmentId,
+    
+  })
+})
+
 
     // mark compartment booked & persist locker
     compartment.isBooked = true;

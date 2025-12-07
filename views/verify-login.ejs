@@ -444,9 +444,13 @@
                       class="form-control otp-input rounded" required />
                      
                   </div>
-                  <button type="submit" class="btn btn-success btn-lg w-100 btn-login">
-                    <i class="fas fa-check-circle me-2"></i>Verify & Login
-                  </button>
+<button 
+  type="submit" 
+  class="btn btn-success btn-lg w-100 btn-login"
+  id="verifyBtn"
+>
+  <i class="fas fa-check-circle me-2"></i>Verify & Login
+</button>
                 </form>
                 <!-- Resend OTP -->
                 <p class="text-muted small mt-4 mb-0">
@@ -488,5 +492,14 @@
     }
   </script>
 
+<script>
+  // Prevent double submit
+  const form = document.querySelector("form");   // or give form an ID if needed
+  const btn  = document.getElementById("verifyBtn");
 
+  form.addEventListener("submit", () => {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Verifying...`;
+  });
+</script>
 </body>

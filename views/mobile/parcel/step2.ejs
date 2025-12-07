@@ -256,12 +256,22 @@
 
                                     </div>
 
-                                    <button class="btn btn-primary w-100 mt-3">Next</button>
+                                   <button class="btn btn-primary w-100 mt-3" id="nextBtn">Next</button>
+
                                 </form>
             </div>
         </div>
     </div>
 
+<script>
+  const form = document.querySelector("form");     // or give your form an ID
+  const nextBtn = document.getElementById("nextBtn");
+
+  form.addEventListener("submit", () => {
+    nextBtn.disabled = true;
+    nextBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Processing...`;
+  });
+</script>
 
 
     <!-- Bootstrap JS (include at end of body) -->
