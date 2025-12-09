@@ -214,6 +214,7 @@
 </div>
 
 
+
     <div class="text-center text-muted mb-2">OR</div>
 
     <!-- Phone Login -->
@@ -262,24 +263,52 @@
   }
 </script>
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const googleSection = document.getElementById("google-login-section");
+  (function () {
+    function toggleGoogleLogin() {
+      const googleSection = document.getElementById("google-login-section");
+      if (!googleSection) return;
 
-    // If running inside Capacitor native (Android/iOS), window.Capacitor exists
-    const isNativeCapacitor =
-      window.Capacitor &&
-      typeof window.Capacitor.isNativePlatform === "function" &&
-      window.Capacitor.isNativePlatform();
+      let isNative = false;
 
-    // If it's NOT browser (i.e., native app) → hide Google sign-in
-    if (isNativeCapacitor && googleSection) {
-      googleSection.style.display = "none";
-    } else if (googleSection) {
-      // Browser → make sure it's visible
-      googleSection.style.display = "block";
+      try {
+        // Prefer Capacitor platform detection if available
+        if (window.Capacitor && typeof window.Capacitor.getPlatform === "function") {
+          const platform = window.Capacitor.getPlatform(); // "ios", "android", or "web"
+          isNative = platform === "ios" || platform === "android";
+        } else {
+          // Fallback heuristic: detect Android/iOS WebView (Capacitor loads in WebView)
+          const ua = navigator.userAgent || "";
+          const isAndroidWebView = ua.includes("; wv)") || /\bVersion\/\d+\.\d+\b.*Chrome\/\d+/.test(ua);
+          const isIOSWebView = (ua.includes("iPhone") || ua.includes("iPad")) && !ua.includes("Safari");
+          isNative = isAndroidWebView || isIOSWebView;
+        }
+      } catch (e) {
+        console.warn("Error detecting platform:", e);
+      }
+
+      // Apply visibility
+      if (isNative) {
+        googleSection.style.display = "none";
+      } else {
+        googleSection.style.display = "block";
+      }
+
+      // Debug log – helps you see what's happening in DevTools
+      console.log("Google login visibility:", {
+        isNative,
+        hasCapacitor: !!window.Capacitor,
+        userAgent: navigator.userAgent
+      });
     }
-  });
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", toggleGoogleLogin);
+    } else {
+      toggleGoogleLogin();
+    }
+  })();
 </script>
+
 
 <script>
   window.addEventListener("load", () => {
