@@ -215,6 +215,7 @@
 
 
 
+
     <div class="text-center text-muted mb-2">OR</div>
 
     <!-- Phone Login -->
@@ -263,51 +264,25 @@
   }
 </script>
 <script>
-  (function () {
-    function toggleGoogleLogin() {
-      const googleSection = document.getElementById("google-login-section");
-      if (!googleSection) return;
+  document.addEventListener("DOMContentLoaded", () => {
+    const googleSection = document.getElementById("google-login-section");
+    if (!googleSection) return;
 
-      let isNative = false;
+    const ua = navigator.userAgent || "";
+    const isNativeApp = ua.includes("DroppointApp");
 
-      try {
-        // Prefer Capacitor platform detection if available
-        if (window.Capacitor && typeof window.Capacitor.getPlatform === "function") {
-          const platform = window.Capacitor.getPlatform(); // "ios", "android", or "web"
-          isNative = platform === "ios" || platform === "android";
-        } else {
-          // Fallback heuristic: detect Android/iOS WebView (Capacitor loads in WebView)
-          const ua = navigator.userAgent || "";
-          const isAndroidWebView = ua.includes("; wv)") || /\bVersion\/\d+\.\d+\b.*Chrome\/\d+/.test(ua);
-          const isIOSWebView = (ua.includes("iPhone") || ua.includes("iPad")) && !ua.includes("Safari");
-          isNative = isAndroidWebView || isIOSWebView;
-        }
-      } catch (e) {
-        console.warn("Error detecting platform:", e);
-      }
-
-      // Apply visibility
-      if (isNative) {
-        googleSection.style.display = "none";
-      } else {
-        googleSection.style.display = "block";
-      }
-
-      // Debug log – helps you see what's happening in DevTools
-      console.log("Google login visibility:", {
-        isNative,
-        hasCapacitor: !!window.Capacitor,
-        userAgent: navigator.userAgent
-      });
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", toggleGoogleLogin);
+    if (isNativeApp) {
+      // Inside Capacitor app → hide Google sign-in
+      googleSection.style.display = "none";
     } else {
-      toggleGoogleLogin();
+      // Normal browser → show Google sign-in
+      googleSection.style.display = "block";
     }
-  })();
+
+    console.log("UA:", ua, "isNativeApp:", isNativeApp);
+  });
 </script>
+
 
 
 <script>
