@@ -203,14 +203,16 @@
     <% } %>
 
     <!-- Google Login -->
-    <div class="d-grid mb-3">
-      <a href="/auth/google" class="text-decoration-none">
-        <button type="button" class="btn btn-google d-flex align-items-center justify-content-center w-100">
-          <img src="https://www.google.com/favicon.ico" alt="Google" style="width: 20px; height: 20px;" class="me-2" />
-          Sign in with Google
-        </button>
-      </a>
-    </div>
+<!-- Google Login -->
+<div class="d-grid mb-3" id="google-login-section">
+  <a href="/auth/google" class="text-decoration-none">
+    <button type="button" class="btn btn-google d-flex align-items-center justify-content-center w-100">
+      <img src="https://www.google.com/favicon.ico" alt="Google" style="width: 20px; height: 20px;" class="me-2" />
+      Sign in with Google
+    </button>
+  </a>
+</div>
+
 
     <div class="text-center text-muted mb-2">OR</div>
 
@@ -259,6 +261,26 @@
     });
   }
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const googleSection = document.getElementById("google-login-section");
+
+    // If running inside Capacitor native (Android/iOS), window.Capacitor exists
+    const isNativeCapacitor =
+      window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform === "function" &&
+      window.Capacitor.isNativePlatform();
+
+    // If it's NOT browser (i.e., native app) → hide Google sign-in
+    if (isNativeCapacitor && googleSection) {
+      googleSection.style.display = "none";
+    } else if (googleSection) {
+      // Browser → make sure it's visible
+      googleSection.style.display = "block";
+    }
+  });
+</script>
+
 <script>
   window.addEventListener("load", () => {
     const loader = document.getElementById("customLoader");
