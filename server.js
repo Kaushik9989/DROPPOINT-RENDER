@@ -18,7 +18,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const bodyParser = require("body-parser");
 const cron = require("node-cron");
- 
+const {sendSMS} = require("./smartping.js");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Extension = require("./models/extension.js");
@@ -52,6 +52,8 @@ const locker = require("./models/locker.js");
 const compression = require("compression");
 app.use(compression());
 require("dotenv").config();
+const { generateOtp, storeOtp, canResend, updateResendTimestamp, verifyOtp } = require("./otpStore");
+
 
 const server = http.createServer(app);
 const io = new Server(server);
@@ -2718,6 +2720,10 @@ app.get("/mobile/parcel/:id/success", async (req, res) => {
 }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 .catch(error => console.error('❌ WhatsApp Message Error:', error));
 
+  const smsText2 = `Your Drop Point Locker Access Code is ${parcel.accessCode}. Please don't share this with anyone. -DROPPOINT`;
+  const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
+  console.log(sendResult2);
+
 
   res.render("mobile/parcel/success", { parcel });
 });
@@ -3456,6 +3462,116 @@ app.post("/unlock/:lockerId/:compartmentId", async (req, res) => {
     return res.status(500).send("Internal Server Error");
   }
 });
+
+
+
+
+
+const OTP_LENGTH = parseInt(process.env.OTP_LENGTH || "6", 10);
+
+
+
+
+
+
+///// SMART PING VERIFICATION
+
+function e164(mobile) {
+  // naive normalization; assume indian numbers if 10 digits
+  mobile = String(mobile).replace(/\s|-/g, "");
+  if (/^[0-9]{10}$/.test(mobile)) return "91" + mobile;
+  if (/^\+?[0-9]{11,15}$/.test(mobile)) return mobile.replace(/^\+/, "");
+  return null;
+}
+
+
+app.get('/otp/request', (req, res) => {
+  res.render('request', { title: 'Request OTP' });
+});
+
+
+
+
+//// 1) REQUEST OTP
+
+
+
+
+app.post("/api/otp/request", async(req,res)=>{
+  try{
+    const {mobile} = req.body;
+    if(!mobile) return res.status(400).json({ok : false, message : "mobile required"});
+    const number = e164(mobile);
+    const key = `otp${number}`;
+
+    if (!canResend(key)) {
+      return res.status(429).json({ ok: false, message: "resend cooldown" });
+    }
+
+    const otp = generateOtp(OTP_LENGTH);
+
+    storeOtp(key,otp);
+    updateResendTimestamp(key);
+
+    const text = `Dear User, your Drop Point OTP is ${otp}. Use it within 5 minutes to access your locker safely. Drop Point Systems – Secure. Reliable. Smart.`
+
+    let sendResult;
+
+    sendResult = await sendSMS(number,text);
+
+    if (!sendResult.success) {
+      // log and return error; optionally increment failure counter, rollback store
+      console.error("SMS send failed:", sendResult.error);
+      return res.status(502).json({ ok: false, message: "sms_send_failed", detail: sendResult.error });
+    }
+
+     return res.json({ ok: true, message: "otp_sent" });
+  } catch(err){
+     console.error(err);
+    return res.status(500).json({ ok: false, message: "internal_error" });
+  }
+ }
+);
+
+
+// Render OTP verify page
+app.get('/otp/verify', (req, res) => {
+  res.render('verifyS', { title: 'Verify OTP' });
+});
+
+
+
+
+
+/// 2) VERIFY OTP
+
+app.post("/api/otp/verify", async (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+
+    if (!mobile || !otp) {
+      return res.status(400).json({ ok: false, message: "mobile and otp required" });
+    }
+
+    const number = e164(mobile);
+    if (!number) return res.status(400).json({ ok: false, message: "invalid mobile" });
+
+    const key = `otp${number}`; // FIXED KEY TO MATCH STORE
+
+    const result = verifyOtp(key, String(otp));
+
+    if (result.ok) {
+      return res.json({ ok: true, message: "verified" });
+    } else {
+      return res.status(400).json({ ok: false, message: "not_verified", reason: result.reason });
+    }
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, message: "internal_error" });
+  }
+});
+
 
 
 
