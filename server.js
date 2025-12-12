@@ -2079,7 +2079,10 @@ app.delete('/mobile/parcel/del/:id', async (req, res) => {
   }
 });
 app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
-  const parcel = await Parcel2.findById(req.params.id);
+  const parcel = await Parcel2.findOne({ customId: req.params.id });
+  if(!parcel){
+    res.send("NOT FOUND");
+  }
    const now = new Date();
   const isExpired = now > parcel.expiresAt;
 
@@ -2388,7 +2391,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     let exists = true;
 
     while (exists) {
-    customId = "P" + Math.random().toString(36).substring(2, 8).toUpperCase();
+   customId = "P" + Math.random().toString(36).substring(2, 7).toUpperCase();
     exists = await Parcel2.exists({ customId });
   }
 
@@ -2706,6 +2709,7 @@ app.get("/mobile/view/parcel/:id/success", async (req, res) => {
 
 app.get("/mobile/parcel/:id/success", async (req, res) => {
 
+
     const parcelid = req.params.id;
     const parcel = await Parcel2.findById(req.params.id);
     if (!parcel) return res.status(404).send("Parcel not found");
@@ -2800,7 +2804,7 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
 
 
 app.get("/mobile/incoming/:id/qr", async (req, res) => {
-  const parcel = await Parcel2.findById(req.params.id).lean();
+  const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
   const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
   let qrImage;
@@ -2812,6 +2816,15 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
  
   res.render("mobile/qrPage", { parcel,qrImage });
 });
+
+app.get("/:id/qr",async(req,res)=>{
+  const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
+  const parcelLocker = parcel.lockerId || "";
+  const accessCode = parcel.accessCode;
+  let qrImage;
+  qrImage = await QRCode.toDataURL(accessCode);
+  res.render("mobile/qrPage", {parcel, qrImage});
+})
 
 
 app.post("/:parcelId/extend/create-order", async (req, res) => {
