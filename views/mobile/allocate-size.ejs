@@ -1,211 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Select Compartment</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Bootstrap -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
- <style>
-  :root {
-    --radius-lg: 20px;
-    --radius-md: 14px;
-    --shadow-soft: 0 10px 30px rgba(0,0,0,0.08);
-    --shadow-press: 0 6px 16px rgba(0,0,0,0.12);
-    --accent: #0d6efd;
-    --success: #16a34a;
-  }
+  <style>
+    :root {
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --shadow-press: 0 6px 16px rgba(0, 0, 0, 0.12);
+      --accent: #0d6efd;
+      --success: #16a34a;
+    }
 
-  html, body {
-    height: 100%;
-  }
+    html,
+    body {
+      height: 100%;
+    }
 
-  body {
-    background: linear-gradient(180deg, #f6f8fb, #eef1f6);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    color: #111827;
-  }
+    body {
+      background: linear-gradient(180deg, #f6f8fb, #eef1f6);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      color: #111827;
+    }
 
-  .page {
-    padding: 18px;
-    padding-bottom: 96px; /* space for sticky button */
-    max-width: 560px;
-    margin: 0 auto;
-  }
+    .page {
+      padding: 18px;
+      padding-bottom: 96px;
+      /* space for sticky button */
+      max-width: 560px;
+      margin: 0 auto;
+    }
 
-  /* Header */
-  .page-header {
-    margin-bottom: 24px;
-  }
+    /* Header */
+    .page-header {
+      margin-bottom: 24px;
+    }
 
-  .page-header h4 {
-    font-weight: 800;
-    letter-spacing: -0.3px;
-  }
+    .page-header h4 {
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
 
-  .locker-meta {
-    margin-top: 6px;
-    font-size: 14px;
-    color: #6b7280;
-    line-height: 1.4;
-  }
+    .locker-meta {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
 
-  /* Compartment card */
-  .compartment-card {
-    border-radius: var(--radius-lg);
-    background: #ffffff;
-    border: 1px solid rgba(0,0,0,0.04);
-    padding: 18px;
-    width: 100%;
-    text-align: left;
-    box-shadow: var(--shadow-soft);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
+    /* Compartment card */
+    .compartment-card {
+      border-radius: var(--radius-lg);
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      padding: 18px;
+      width: 100%;
+      text-align: left;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
 
-  .compartment-card:hover {
-    transform: translateY(-2px);
-  }
+    .compartment-card:hover {
+      transform: translateY(-2px);
+    }
 
-  .compartment-card:active {
-    transform: scale(0.97);
-    box-shadow: var(--shadow-press);
-  }
+    .compartment-card:active {
+      transform: scale(0.97);
+      box-shadow: var(--shadow-press);
+    }
 
-  .compartment-title {
-    font-size: 17px;
-    font-weight: 700;
-  }
+    .compartment-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
 
-  .size-pill {
-    display: inline-block;
-    margin-top: 6px;
-    padding: 4px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 999px;
-    background: #eef2ff;
-    color: #4338ca;
-    text-transform: capitalize;
-  }
+    .size-pill {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+      text-transform: capitalize;
+    }
 
-  .badge-available {
-    font-size: 12px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(22,163,74,0.12);
-    color: var(--success);
-    font-weight: 700;
-  }
+    .badge-available {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(22, 163, 74, 0.12);
+      color: var(--success);
+      font-weight: 700;
+    }
 
-  /* Empty state */
-  .empty-card {
-    background: #ffffff;
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    text-align: center;
-    box-shadow: var(--shadow-soft);
-  }
+    /* Empty state */
+    .empty-card {
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: center;
+      box-shadow: var(--shadow-soft);
+    }
 
-  /* Sticky bottom action */
-  .bottom-action {
-    
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
-    max-width: 560px;
-    margin: 0 auto;
-  }
+    /* Sticky bottom action */
+    .bottom-action {
 
-  .btn-lg-mobile {
-    padding: 14px;
-    font-size: 16px;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-  }
-</style>
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .btn-lg-mobile {
+      padding: 14px;
+      font-size: 16px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+    }
+  </style>
 
 </head>
+
 <body>
-          <%- include('../partials/navbar') %>
-<div class="page">
+  <%- include('../partials/navbar') %>
+    <div class="page">
 
-  <!-- Header -->
-  <div class="page-header">
-    <h4 class="mb-4">Select Compartment : </h4>
-    <div class="locker-meta">
-      Locker ID: <strong><%= locker.lockerId %></strong><br />
-      <% if (locker.location) { %>
-        <%= locker.location.address %>
-      <% } %>
+      <!-- Header -->
+      <div class="page-header">
+        <h4 class="mb-4">Select Compartment : </h4>
+        <div class="locker-meta">
+          Locker ID: <strong>
+            <%= locker.lockerId %>
+          </strong><br />
+          <% if (locker.location) { %>
+            <%= locker.location.address %>
+              <% } %>
+        </div>
+      </div>
+
+      <% if (!availableCompartments || availableCompartments.length===0) { %>
+
+        <!-- Empty State -->
+        <div class="empty-card mb-3">
+          <p class="mb-3 fw-semibold">
+            No compartments available right now
+          </p>
+          <p class="text-muted small mb-0">
+            Please try another locker or come back later.
+          </p>
+        </div>
+
+        <a href="/mobile/allocate" class="btn btn-secondary btn-lg-mobile w-100">
+          Go Back
+        </a>
+
+        <% } else { %>
+
+          <!-- Compartment List -->
+          <div class="d-grid gap-3">
+            <% availableCompartments.forEach((compartment)=> { %>
+
+              <form method="POST" action="/mobile/allocate/confirm">
+                <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
+                <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
+
+                <button type="submit" class="compartment-card">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                      <div class="compartment-number">
+                        <%= parseInt(compartment.compartmentId) + 1 %>
+                      </div>
+
+                      <div>
+                        <div class="compartment-title">
+                          Compartment
+                        </div>
+
+                        <% if (compartment.size) { %>
+                          <div class="size-pill">
+                            <%= compartment.size %>
+                          </div>
+                          <% } %>
+                      </div>
+                    </div>
+
+
+                    <span class="badge bg-success badge-available">
+                      Available
+                    </span>
+                  </div>
+                </button>
+              </form>
+
+              <% }) %>
+          </div>
+
+          <!-- Back -->
+          <div class="bottom-action">
+            <a href="/mobile/allocate" class="btn btn-outline-secondary btn-lg-mobile w-100 mt-4">
+              Back to Lockers
+            </a>
+          </div>
+
+          <% } %>
+
     </div>
-  </div>
-
-  <% if (!availableCompartments || availableCompartments.length === 0) { %>
-
-    <!-- Empty State -->
-    <div class="empty-card mb-3">
-      <p class="mb-3 fw-semibold">
-        No compartments available right now
-      </p>
-      <p class="text-muted small mb-0">
-        Please try another locker or come back later.
-      </p>
-    </div>
-
-    <a href="/mobile/allocate" class="btn btn-secondary btn-lg-mobile w-100">
-      Go Back
-    </a>
-
-  <% } else { %>
-
-    <!-- Compartment List -->
-    <div class="d-grid gap-3">
-      <% availableCompartments.forEach((compartment) => { %>
-
-        <form method="POST" action="/mobile/allocate/confirm">
-          <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
-          <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
-
-          <button type="submit" class="compartment-card">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="compartment-title">
-                  Compartment <%= parseInt(compartment.compartmentId) + 1 %>
-                </div>
-
-             <% if (compartment.size) { %>
-  <div class="size-pill">
-    <%= compartment.size %>
-  </div>
-<% } %>
-
-              </div>
-
-              <span class="badge bg-success badge-available">
-                Available
-              </span>
-            </div>
-          </button>
-        </form>
-
-      <% }) %>
-    </div>
-
-    <!-- Back -->
-    <div class="bottom-action">
-      <a href="/mobile/allocate" class="btn btn-outline-secondary btn-lg-mobile w-100 mt-4">
-        Back to Lockers
-      </a>
-    </div>
-
-  <% } %>
-
-</div>
 
 </body>
+
 </html>
