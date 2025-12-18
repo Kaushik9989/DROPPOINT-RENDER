@@ -11,94 +11,124 @@
     rel="stylesheet"
   />
 
-  <style>
-    :root {
-      --card-radius: 18px;
-    }
+ <style>
+  :root {
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --shadow-soft: 0 10px 30px rgba(0,0,0,0.08);
+    --shadow-press: 0 6px 16px rgba(0,0,0,0.12);
+    --accent: #0d6efd;
+    --success: #16a34a;
+  }
 
-    html, body {
-      height: 100%;
-    }
+  html, body {
+    height: 100%;
+  }
 
-    body {
-      background: #f2f4f7;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    }
+  body {
+    background: linear-gradient(180deg, #f6f8fb, #eef1f6);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    color: #111827;
+  }
 
-    .page {
-      padding: 16px;
-      padding-bottom: 24px;
-    }
+  .page {
+    padding: 18px;
+    padding-bottom: 96px; /* space for sticky button */
+    max-width: 560px;
+    margin: 0 auto;
+  }
 
-    /* Header */
-    .page-header {
-      margin-bottom: 20px;
-    }
+  /* Header */
+  .page-header {
+    margin-bottom: 24px;
+  }
 
-    .page-header h4 {
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
+  .page-header h4 {
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
 
-    .locker-meta {
-      font-size: 14px;
-      color: #6c757d;
-      line-height: 1.4;
-    }
+  .locker-meta {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
 
-    /* Compartment card */
-    .compartment-card {
-      border-radius: var(--card-radius);
-      background: #ffffff;
-      border: none;
-      padding: 18px;
-      width: 100%;
-      text-align: left;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
+  /* Compartment card */
+  .compartment-card {
+    border-radius: var(--radius-lg);
+    background: #ffffff;
+    border: 1px solid rgba(0,0,0,0.04);
+    padding: 18px;
+    width: 100%;
+    text-align: left;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
 
-    .compartment-card:active {
-      transform: scale(0.98);
-    }
+  .compartment-card:hover {
+    transform: translateY(-2px);
+  }
 
-    .compartment-title {
-      font-size: 16px;
-      font-weight: 600;
-    }
+  .compartment-card:active {
+    transform: scale(0.97);
+    box-shadow: var(--shadow-press);
+  }
 
-    .compartment-sub {
-      font-size: 13px;
-      color: #6c757d;
-      margin-top: 2px;
-    }
+  .compartment-title {
+    font-size: 17px;
+    font-weight: 700;
+  }
 
-    .badge-available {
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
+  .size-pill {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    text-transform: capitalize;
+  }
 
-    /* Empty state */
-    .empty-card {
-      background: #fff;
-      border-radius: var(--card-radius);
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-    }
+  .badge-available {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(22,163,74,0.12);
+    color: var(--success);
+    font-weight: 700;
+  }
 
-    /* Bottom button */
-    .bottom-action {
-      margin-top: 24px;
-    }
+  /* Empty state */
+  .empty-card {
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow-soft);
+  }
 
-    .btn-lg-mobile {
-      padding: 14px;
-      font-size: 16px;
-      border-radius: 14px;
-    }
-  </style>
+  /* Sticky bottom action */
+  .bottom-action {
+    
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .btn-lg-mobile {
+    padding: 14px;
+    font-size: 16px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+  }
+</style>
+
 </head>
 <body>
           <%- include('../partials/navbar') %>
@@ -148,11 +178,12 @@
                   Compartment <%= parseInt(compartment.compartmentId) + 1 %>
                 </div>
 
-                <% if (compartment.size) { %>
-                  <div class="compartment-sub">
-                    Size: <%= compartment.size %>
-                  </div>
-                <% } %>
+             <% if (compartment.size) { %>
+  <div class="size-pill">
+    <%= compartment.size %>
+  </div>
+<% } %>
+
               </div>
 
               <span class="badge bg-success badge-available">
@@ -167,7 +198,7 @@
 
     <!-- Back -->
     <div class="bottom-action">
-      <a href="/mobile/allocate" class="btn btn-outline-secondary btn-lg-mobile w-100">
+      <a href="/mobile/allocate" class="btn btn-outline-secondary btn-lg-mobile w-100 mt-4">
         Back to Lockers
       </a>
     </div>
