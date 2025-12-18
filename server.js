@@ -2784,12 +2784,7 @@ app.get("/qr", async (req, res) => {
      const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
   let qrImage;
-    
-      qrImage = await QRCode.toDataURL(accessCode);
-
-
-
- 
+      qrImage = await QRCode.toDataURL(accessCode); 
   res.render("mobile/qrPage", { parcel,qrImage });
   } catch (err) {
    console.error(err);
