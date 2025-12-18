@@ -12,85 +12,162 @@
   />
 
   <style>
-    body {
-      background: #f8f9fa;
+    :root {
+      --card-radius: 18px;
     }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background: #f2f4f7;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+    }
+
+    .page {
+      padding: 16px;
+      padding-bottom: 24px;
+    }
+
+    /* Header */
+    .page-header {
+      margin-bottom: 20px;
+    }
+
+    .page-header h4 {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .locker-meta {
+      font-size: 14px;
+      color: #6c757d;
+      line-height: 1.4;
+    }
+
+    /* Compartment card */
     .compartment-card {
-      cursor: pointer;
+      border-radius: var(--card-radius);
+      background: #ffffff;
+      border: none;
+      padding: 18px;
+      width: 100%;
+      text-align: left;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .compartment-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+
+    .compartment-card:active {
+      transform: scale(0.98);
+    }
+
+    .compartment-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .compartment-sub {
+      font-size: 13px;
+      color: #6c757d;
+      margin-top: 2px;
+    }
+
+    .badge-available {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    /* Empty state */
+    .empty-card {
+      background: #fff;
+      border-radius: var(--card-radius);
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    }
+
+    /* Bottom button */
+    .bottom-action {
+      margin-top: 24px;
+    }
+
+    .btn-lg-mobile {
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 14px;
     }
   </style>
 </head>
 <body>
-
-<div class="container py-4">
+          <%- include('../partials/navbar') %>
+<div class="page">
 
   <!-- Header -->
-  <div class="mb-4">
-    <h4 class="fw-bold">Select Compartment</h4>
-    <p class="text-muted mb-1">
-      Locker ID: <strong><%= locker.lockerId %></strong>
-    </p>
-    <% if (locker.location) { %>
-      <small class="text-muted"><%= locker.location.address%></small>
-    <% } %>
+  <div class="page-header">
+    <h4 class="mb-4">Select Compartment : </h4>
+    <div class="locker-meta">
+      Locker ID: <strong><%= locker.lockerId %></strong><br />
+      <% if (locker.location) { %>
+        <%= locker.location.address %>
+      <% } %>
+    </div>
   </div>
 
-  <!-- No compartments case -->
   <% if (!availableCompartments || availableCompartments.length === 0) { %>
-    <div class="alert alert-warning">
-      No available compartments in this locker right now.
+
+    <!-- Empty State -->
+    <div class="empty-card mb-3">
+      <p class="mb-3 fw-semibold">
+        No compartments available right now
+      </p>
+      <p class="text-muted small mb-0">
+        Please try another locker or come back later.
+      </p>
     </div>
 
-    <a href="/mobile/allocate" class="btn btn-secondary w-100">
+    <a href="/mobile/allocate" class="btn btn-secondary btn-lg-mobile w-100">
       Go Back
     </a>
 
   <% } else { %>
 
-    <!-- Compartments list -->
-    <div class="row g-3">
+    <!-- Compartment List -->
+    <div class="d-grid gap-3">
       <% availableCompartments.forEach((compartment) => { %>
-        <div class="col-12">
-          <form
-            method="POST"
-            action="/mobile/allocate/confirm"
-          >
-            <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
-            <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
 
-            <button
-              type="submit"
-              class="btn btn-light w-100 text-start p-3 compartment-card"
-            >
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <div class="fw-semibold">
-                    Compartment <%= parseInt(compartment.compartmentId) + 1 %>
-                  </div>
+        <form method="POST" action="/mobile/allocate/confirm">
+          <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
+          <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
 
-                  <% if (compartment.size) { %>
-                    <small class="text-muted">
-                      Size: <%= compartment.size %>
-                    </small>
-                  <% } %>
+          <button type="submit" class="compartment-card">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="compartment-title">
+                  Compartment <%= parseInt(compartment.compartmentId) + 1 %>
                 </div>
 
-                <span class="badge bg-success">Available</span>
+                <% if (compartment.size) { %>
+                  <div class="compartment-sub">
+                    Size: <%= compartment.size %>
+                  </div>
+                <% } %>
               </div>
-            </button>
-          </form>
-        </div>
+
+              <span class="badge bg-success badge-available">
+                Available
+              </span>
+            </div>
+          </button>
+        </form>
+
       <% }) %>
     </div>
 
-    <!-- Back button -->
-    <div class="mt-4">
-      <a href="/mobile/allocate" class="btn btn-outline-secondary w-100">
+    <!-- Back -->
+    <div class="bottom-action">
+      <a href="/mobile/allocate" class="btn btn-outline-secondary btn-lg-mobile w-100">
         Back to Lockers
       </a>
     </div>

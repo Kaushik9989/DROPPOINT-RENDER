@@ -149,53 +149,6 @@ app.use(passport.session());
 
 
 
-// passport.use(
-//   new GoogleStrategy(
-//     {
-//       clientID: "587834679125-34p3obvnjoa9o8qsa4asgrgubneh5atg.apps.googleusercontent.com",
-//       clientSecret: "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",
-//       callbackURL: process.env.GOOGLE_CALLBACK_URL,
-//       passReqToCallback: true, // Needed to access `req` in verify function
-//     },
-//     async (req, accessToken, refreshToken, profile, done) => {
-//       try {
-//         // If user is already logged in, link their account
-//         if (req.user) {
-//           const currentUser = await User.findById(req.user._id);
-//           if (!currentUser) return done(null, false);
-
-//           currentUser.googleId = profile.id;
-//           currentUser.email = currentUser.email || profile.emails?.[0]?.value;
-//           await currentUser.save();
-
-//           return done(null, currentUser);
-//         }
-
-//         // Otherwise: normal login or signup
-//         let user = await User.findOne({ googleId: profile.id });
-
-//         if (!user) {
-//           user = new User({
-//             username: profile.displayName,
-//             googleId: profile.id,
-//             email: profile.emails?.[0]?.value,
-//           });
-//           await user.save();
-//         }
-
-//         return done(null, user);
-//       } catch (err) {
-//         return done(err);
-//       }
-//     }
-//   )
-// );
-
-
-
-
-
-
 
 
 
@@ -3563,6 +3516,7 @@ app.get('/otp/verify', (req, res) => {
 
 app.post("/api/otp/verify", async (req, res) => {
   try {
+
     const { mobile, otp } = req.body;
 
     if (!mobile || !otp) {
@@ -3600,7 +3554,12 @@ app.post("/api/otp/verify", async (req, res) => {
 app.get("/mobile/allocate",isAuthenticated,async(req,res)=>{
      try {
        const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.redirect("/login");
+      if (!user) return res.redirect("/login");
+    if (!user.phone) {
+       req.session.pendingRedirectAfterPhoneLink = `/mobile/allocate`;
+      req.flash("error", "Please verify your phone number to continue.");
+      return res.redirect("/mobile/link-phone");
+    }
     const lockersRaw = await Locker.find({}).lean();
     const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
@@ -3629,6 +3588,8 @@ app.get("/mobile/allocate",isAuthenticated,async(req,res)=>{
 
 app.get("/mobile/allocate/select/:lockerId", isAuthenticated, async(req,res)=>{
   try{
+        const user = await User.findById(req.session.user._id);
+    if (!user) return res.redirect("/login");
     const {lockerId} = req.params;
     const locker = await Locker.findOne({lockerId : lockerId}).lean();
     if (!locker) {
@@ -3652,6 +3613,9 @@ function generatenewOtp() {
 
 app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
   try {
+        const user = await User.findById(req.session.user._id);
+        
+    if (!user) return res.redirect("/login");
     const { lockerId, compartmentId } = req.body;
 
     if (!lockerId || !compartmentId) {
@@ -3684,7 +3648,8 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
     compartment.bookingInfo.dropOtp = otp;
     compartment.bookingInfo.dropOtpExpiresAt = expiresAt;
     compartment.bookingInfo.dropOtpUsed = false;
-
+    compartment.bookingInfo.recieverName = user.username;
+    compartment.bookingInfo.recieverPhone = user.phone;
     // // Mark as reserved (optional but recommended)
     compartment.isBooked = true;
 
