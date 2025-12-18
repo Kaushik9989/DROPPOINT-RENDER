@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parcel Details</title>
+  <style>
+    /* keep navbar styles untouched (we only style this page container) */
+    :root{--bg:#0f1724;--card:#1e293b;--accent1:#06b6d4;--accent2:#7c3aed;--text:#ffffff;--accent3:orange;--accent4:rgb(179, 122, 80);}
+    body{
+      font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+      background:var(--bg);
+      color:var(--text);
+      margin:0;
+      padding:20px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .container{display:flex;justify-content:center;padding-top:20px}
+    .card{
+      background:var(--card);
+      width:min(420px,96vw);
+      border-radius:12px;
+      padding:20px;
+      box-shadow:0 8px 24px rgba(2,6,23,0.6);
+      text-align:center;
+    }
+    h2{margin:0 0 12px 0;font-size:18px}
+    .info{margin:10px 0;font-size:15px;word-break:break-word}
+    .label{opacity:0.8;font-size:13px}
+    .value{font-weight:700;margin-top:4px}
+    .status{
+      display:inline-block;
+      margin:12px 0;
+      padding:6px 12px;
+      border-radius:999px;
+      background:linear-gradient(90deg,var(--accent3),var(--accent4));
+      font-weight:700;
+      font-size:13px;
+    }
+    #unlockBtn{
+      width:100%;
+      margin-top:8px;
+      background:linear-gradient(90deg,var(--accent1),var(--accent2));
+      border:0;
+      padding:12px 14px;
+      border-radius:10px;
+      color:white;
+      font-weight:700;
+      font-size:15px;
+      cursor:pointer;
+    }
+    @media (max-width:420px){
+      .card{padding:16px}
+      h2{font-size:16px}
+      .info{font-size:14px}
+      button{padding:11px;font-size:14px}
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/navbar') -%>
+
+  <div class="container">
+    <div class="card" role="region" aria-label="Parcel details">
+      <h2>Parcel Details</h2>
+
+      <div class="info">
+        <div class="label">Sender</div>
+        <div class="value"><%= parcel.senderName %></div>
+      </div>
+
+      <div class="info">
+        <div class="label">Receiver</div>
+        <div class="value"><%= parcel.receiverName %></div>
+      </div>
+
+      <div class="info">
+        <div class="label">Access Code</div>
+        <div class="value"><%= parcel.accessCode %></div>
+      </div>
+
+      <div class="status" aria-hidden="true"><%= parcel.status %></div>
+
+      <form id="unlockForm" action="/unlock/<%= parcel.lockerId %>/<%= parcel.compartmentId %>" method="POST">
+        <button id ="unlockBtn"type="submit">Unlock Compartment</button>
+      </form>
+    </div>
+  </div>
+
+
+</body>
+</html>
