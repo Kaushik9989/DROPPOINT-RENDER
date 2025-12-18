@@ -2773,6 +2773,33 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
   res.render("mobile/qrPage", { parcel,qrImage });
 });
 
+// routes/qr.js (or inside app.js)
+app.get("/qr", async (req, res) => {
+  try {
+    const { parcelid } = req.query;
+    const parcel = await Parcel2.findOne({customId : parcelid}).lean();
+    if(!parcel){
+      res.status(500).json({error : "NO PARCEL FOUND"});
+    }
+     const parcelLocker = parcel.lockerId || "";
+  const accessCode = parcel.accessCode;
+  let qrImage;
+    
+      qrImage = await QRCode.toDataURL(accessCode);
+
+
+
+ 
+  res.render("mobile/qrPage", { parcel,qrImage });
+  } catch (err) {
+   console.error(err);
+    res.status(500).json({ error: "INTERNAL SERVER ERROR" });
+  }
+});
+
+
+
+
 app.get("/:id/qr",async(req,res)=>{
   const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
   const parcelLocker = parcel.lockerId || "";
