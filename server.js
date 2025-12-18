@@ -2593,6 +2593,7 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       return res.redirect("/mobile/send/step2");
     }
     let token = generateShiprocketToken();
+    console.log(token);
     // const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU1MTU4NzE0LCJqdGkiOiJyTHVTRlFnSHF2T2RaOFhXIiwiaWF0IjoxNzU0Mjk0NzE0LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1NDI5NDcxNCwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.3x5fpkbgqJjHLhj2pimF_rSBnVk08OCP8cprFpHuVMk';
 
     const headers = {
@@ -2812,7 +2813,7 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
   let qrImage;
     
       qrImage = await QRCode.toDataURL(accessCode);
-    
+
 
 
  
@@ -3595,6 +3596,120 @@ app.post("/api/otp/verify", async (req, res) => {
 
 
 
+///// GIG FLOW
+app.get("/mobile/allocate",isAuthenticated,async(req,res)=>{
+     try {
+       const user = await User.findById(req.session.user._id).lean();
+  if (!user) return res.redirect("/login");
+    const lockersRaw = await Locker.find({}).lean();
+    const lockers = lockersRaw.map((locker) => ({
+      lockerId: locker.lockerId,
+      compartments: locker.compartments,
+      location: locker.location || { lat: null, lng: null, address: "" },
+    }));
+    res.render(
+      "mobile/allocate",
+      {
+        lockers,
+      },
+      (err, html) => {
+        if (err) {
+          console.error("Error rendering locations:", err);
+          return res.status(500).send("Internal Server Error");
+        }
+        res.send(html);
+      }
+    );
+  } catch (err) {
+    console.error("Error loading locations:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+
+app.get("/mobile/allocate/select/:lockerId", isAuthenticated, async(req,res)=>{
+  try{
+    const {lockerId} = req.params;
+    const locker = await Locker.findOne({lockerId : lockerId}).lean();
+    if (!locker) {
+      req.flash("error", "Locker Not Found");
+      return res.redirect("/mobile/allocate");
+    }
+
+    const availableCompartments = locker.compartments.filter(c => !c.isBooked);
+    res.render("mobile/allocate-size",{locker,availableCompartments});  
+  }catch(e){
+    console.error("Error selecting locker:", e);
+    req.flash("error", "An error occurred. Please try again.");
+    res.redirect("/mobile/allocate");
+  }
+})
+
+function generatenewOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+
+app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
+  try {
+    const { lockerId, compartmentId } = req.body;
+
+    if (!lockerId || !compartmentId) {
+      req.flash("error", "Invalid request");
+      return res.redirect("/mobile/allocate");
+    }
+
+    const locker = await Locker.findOne({ lockerId });
+    if (!locker) {
+      req.flash("error", "Locker not found");
+      return res.redirect("/mobile/allocate");
+    }
+
+    const compartment = locker.compartments.find(
+      c => c.compartmentId === compartmentId
+    );
+
+    if (!compartment || compartment.isBooked) {
+      req.flash("error", "Compartment not available");
+      return res.redirect(`/mobile/allocate/select/${lockerId}`);
+    }
+
+    // 🔐 Generate OTP
+    const otp = generatenewOtp();
+
+    // ⏱ OTP expiry (10 minutes)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save OTP on compartment
+    compartment.bookingInfo.dropOtp = otp;
+    compartment.bookingInfo.dropOtpExpiresAt = expiresAt;
+    compartment.bookingInfo.dropOtpUsed = false;
+
+    // // Mark as reserved (optional but recommended)
+    compartment.isBooked = true;
+
+    await locker.save();
+    console.log(compartment.bookingInfo);
+    // 🔔 OPTIONAL: send OTP to gig worker via SMS
+    // await sendSMS(workerPhone, `Drop OTP: ${otp}`);
+
+    // Show OTP to user / admin
+    res.render("mobile/allocate-otp", {
+      lockerId,
+      compartmentId,
+      otp,
+      expiresAt
+    });
+
+  } catch (err) {
+    console.error("OTP generation error:", err);
+    req.flash("error", "Something went wrong");
+    res.redirect("/mobile/allocate");
+  }
+});
+
+
+
 
 
 
@@ -4232,8 +4347,8 @@ require("dotenv").config();
 async function generateShiprocketToken() {
   try {
     const response = await axios.post("https://apiv2.shiprocket.in/v1/external/auth/login", {
-      email: process.env.SHIPROCKET_EMAIL,
-      password: process.env.SHIPROCKET_API_KEY,
+      email:"vivekkaushik2005@gmail.com",
+      password: "V%qc$cw&V!WZ2CC4deD^x5OWmQtaFQ*3",
     });
 
     const token = response.data.token;

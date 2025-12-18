@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Select Compartment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Bootstrap -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      background: #f8f9fa;
+    }
+    .compartment-card {
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .compartment-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h4 class="fw-bold">Select Compartment</h4>
+    <p class="text-muted mb-1">
+      Locker ID: <strong><%= locker.lockerId %></strong>
+    </p>
+    <% if (locker.location) { %>
+      <small class="text-muted"><%= locker.location.address%></small>
+    <% } %>
+  </div>
+
+  <!-- No compartments case -->
+  <% if (!availableCompartments || availableCompartments.length === 0) { %>
+    <div class="alert alert-warning">
+      No available compartments in this locker right now.
+    </div>
+
+    <a href="/mobile/allocate" class="btn btn-secondary w-100">
+      Go Back
+    </a>
+
+  <% } else { %>
+
+    <!-- Compartments list -->
+    <div class="row g-3">
+      <% availableCompartments.forEach((compartment) => { %>
+        <div class="col-12">
+          <form
+            method="POST"
+            action="/mobile/allocate/confirm"
+          >
+            <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
+            <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
+
+            <button
+              type="submit"
+              class="btn btn-light w-100 text-start p-3 compartment-card"
+            >
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold">
+                    Compartment <%= parseInt(compartment.compartmentId) + 1 %>
+                  </div>
+
+                  <% if (compartment.size) { %>
+                    <small class="text-muted">
+                      Size: <%= compartment.size %>
+                    </small>
+                  <% } %>
+                </div>
+
+                <span class="badge bg-success">Available</span>
+              </div>
+            </button>
+          </form>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Back button -->
+    <div class="mt-4">
+      <a href="/mobile/allocate" class="btn btn-outline-secondary w-100">
+        Back to Lockers
+      </a>
+    </div>
+
+  <% } %>
+
+</div>
+
+</body>
+</html>

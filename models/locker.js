@@ -14,6 +14,12 @@ const CompartmentSchema = new mongoose.Schema({
     userId: { type: String, default: null },
     bookingTime: { type: Date, default: null },
     otp: { type: String, default: null },
+
+    // 🔐 DROP OTP (for gig worker)
+    dropOtp: { type: String, default: null },           // 6-digit OTP
+    dropOtpExpiresAt: { type: Date, default: null },    // expiry
+    dropOtpUsed: { type: Boolean, default: false },     // one-time use
+    pickupOtpUsed: { type: Boolean, default: false },   // one-time use
     recieverName :  { type: String, default: null },
     recieverPhone : {type: String, default: null}
   },
