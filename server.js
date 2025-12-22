@@ -3667,7 +3667,6 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
 
     // Save OTP on compartment
     compartment.bookingInfo.dropOtp = otp;
-    compartment.bookingInfo.dropOtpExpiresAt = expiresAt;
     compartment.bookingInfo.freePeriod = Date.now > freePeriod ? false : true;
     compartment.bookingInfo.dropOtpUsed = false;
     compartment.bookingInfo.recieverName = user.username;
@@ -3877,7 +3876,7 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
 
 
 
-
+///// CALCULATION
 
 cron.schedule("*/1 * * * *", async () => {
   try {
