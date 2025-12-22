@@ -3684,7 +3684,6 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
       lockerId,
       compartmentId,
       otp,
-      expiresAt
     });
 
   } catch (err) {
