@@ -2353,14 +2353,13 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     let razorpayPaymentLink = null;
     let status = "awaiting_drop";
     let paymentStatus = "completed";
-   let expiresAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000);
 
 
     // Handle both sender and receiver pay
     
       status = "awaiting_payment";
       paymentStatus = "pending";
-      expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+      expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hours
       razorpayOrder = await razorpay.orders.create({
         amount: Math.round(parseFloat(cost) * 100),
         currency: "INR",
@@ -3162,31 +3161,31 @@ async function sendWhatsAppMessage(to, parcel) {
 //  */
 const sentPingCache = new Map(); // simple anti-spam; you can persist in DB if needed
 
-cron.schedule("*/5 * * * *", async () => {
-  const now = new Date();
-  const in60 = new Date(now.getTime() + 60 * 60 * 1000);
-  const candidates = await Parcel2.find({
-    status: { $in: ["awaiting_pick", "awaiting_drop"] },
-    expiresAt: { $gt: now, $lte: in60 }
-  }).limit(200);
+// cron.schedule("*/5 * * * *", async () => {
+//   const now = new Date();
+//   const in60 = new Date(now.getTime() + 60 * 60 * 1000);
+//   const candidates = await Parcel2.find({
+//     status: { $in: ["awaiting_pick", "awaiting_drop"] },
+//     expiresAt: { $gt: now, $lte: in60 }
+//   }).limit(200);
 
-  for (const p of candidates) {
-    const key = `${p._id}:${Math.floor(now.getTime() / (60*60*1000))}`; // once per hour
-    if (sentPingCache.has(key)) continue;
+//   for (const p of candidates) {
+//     const key = `${p._id}:${Math.floor(now.getTime() / (60*60*1000))}`; // once per hour
+//     if (sentPingCache.has(key)) continue;
 
-    const to = (p.paymentOption === "receiver_pays" && p.receiverPhone)
-      ? p.receiverPhone : (p.senderPhone || p.receiverPhone);
+//     const to = (p.paymentOption === "receiver_pays" && p.receiverPhone)
+//       ? p.receiverPhone : (p.senderPhone || p.receiverPhone);
 
-    if (!to) continue;
+//     if (!to) continue;
 
-    try {
-      await sendWhatsAppMessage(to,p);
-      sentPingCache.set(key, true);
-    } catch (e) {
-      console.error("WA send err", e?.message || e);
-    }
-  }
-});
+//     try {
+//       await sendWhatsAppMessage(to,p);
+//       sentPingCache.set(key, true);
+//     } catch (e) {
+//       console.error("WA send err", e?.message || e);
+//     }
+//   }
+// });
 
 // // ---------- CRON: 2) Poll Razorpay for issued extensions ----------
 // /**
@@ -3194,16 +3193,16 @@ cron.schedule("*/5 * * * *", async () => {
 //  * - Poll all 'issued' ExtensionRequests from last 48h
 //  * - If paid, apply extension and notify
 //  */
-cron.schedule("*/2 * * * *", async () => {
-  const since = new Date(Date.now() - 48*60*60*1000);
-  const pending = await Extension.find({
-    status: "issued",
-    createdAt: { $gte: since }
-  }).limit(500);
-  for (const ext of pending) {
-    await checkAndApplyPaymentForExtension(ext);
-  }
-});
+// cron.schedule("*/2 * * * *", async () => {
+//   const since = new Date(Date.now() - 48*60*60*1000);
+//   const pending = await Extension.find({
+//     status: "issued",
+//     createdAt: { $gte: since }
+//   }).limit(500);
+//   for (const ext of pending) {
+//     await checkAndApplyPaymentForExtension(ext);
+//   }
+// });
 
 // // ---------- CRON: 3) Mark truly expired ----------
 // /**
@@ -3211,36 +3210,36 @@ cron.schedule("*/2 * * * *", async () => {
 //  * - Any parcel past expiresAt and not picked -> set status "expired" (one-time)
 //  * - Send final info
 //  */
-cron.schedule("*/10 * * * *", async () => {
-  const now = new Date();
-  const expiring = await Parcel2.find({
-    status: { $in: ["awaiting_pick", "awaiting_drop"] },
-    expiresAt: { $lt: now }
-  }).limit(200);
+// cron.schedule("*/10 * * * *", async () => {
+//   const now = new Date();
+//   const expiring = await Parcel2.find({
+//     status: { $in: ["awaiting_pick", "awaiting_drop"] },
+//     expiresAt: { $lt: now }
+//   }).limit(200);
 
-  for (const p of expiring) {
-    p.status = "expired";
-    await p.save().catch(()=>{});
-    const to = p.receiverPhone || p.senderPhone;
-    if (to) {
-      try {
- await client.messages.create({
-    to: `whatsapp:+91${to}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX668ef9da5023e2729ef64e5388e8abb4', 
-    contentVariables: JSON.stringify({
-      1: `${p.accessCode}`,
-      2: `6281672715` ,
+//   for (const p of expiring) {
+//     p.status = "expired";
+//     await p.save().catch(()=>{});
+//     const to = p.receiverPhone || p.senderPhone;
+//     if (to) {
+//       try {
+//  await client.messages.create({
+//     to: `whatsapp:+91${to}`,
+//     from: 'whatsapp:+15558076515',
+//     contentSid: 'HX668ef9da5023e2729ef64e5388e8abb4', 
+//     contentVariables: JSON.stringify({
+//       1: `${p.accessCode}`,
+//       2: `6281672715` ,
       
-})
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
-      } catch(e){
-        console.error("Expiry err", e?.message || e);
-      }
-    }
-  }
-});
+// })
+// }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
+// .catch(error => console.error('❌ WhatsApp Message Error:', error));
+//       } catch(e){
+//         console.error("Expiry err", e?.message || e);
+//       }
+//     }
+//   }
+// });
 
 
 ///NFC IMPLEMENTATION
@@ -3664,11 +3663,12 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
     const otp = generatenewOtp();
 
     // ⏱ OTP expiry (10 minutes)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const freePeriod = new Date(Date.now() + 10 * 60 * 1000);
 
     // Save OTP on compartment
     compartment.bookingInfo.dropOtp = otp;
     compartment.bookingInfo.dropOtpExpiresAt = expiresAt;
+    compartment.bookingInfo.freePeriod = Date.now > freePeriod ? false : true;
     compartment.bookingInfo.dropOtpUsed = false;
     compartment.bookingInfo.recieverName = user.username;
     compartment.bookingInfo.recieverPhone = user.phone;
@@ -3694,6 +3694,241 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
     res.redirect("/mobile/allocate");
   }
 });
+
+
+
+
+
+
+
+
+
+
+//// NEW EXPIRY
+
+cron.schedule("*/1 * * * *", async () => {
+  try {
+    const now = new Date();
+    const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
+
+    // 1️⃣ Find parcels that need warning
+    const parcels = await Parcel2.find({
+      status: "awaiting_pick",
+      expiresAt: { $lt: now },
+      "service.warnedBeforeExpiry": { $ne: true }
+    }).select("_id receiverPhone"); // ⬅️ only what we need
+
+    if (!parcels.length) return;
+
+    // 2️⃣ Send notifications
+    for (const parcel of parcels) {
+       const smsText2 = `Your locker service expires in 10 minutes. Extend now to avoid extra charges. Please extend your service by using this link:  parcel${parcel.customId}/extend - DROPPOINT`;
+  const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
+  console.log(sendResult2);
+    }
+
+    // 3️⃣ Mark warned (NO VALIDATION, NO SAVE)
+    await Parcel2.updateMany(
+      { _id: { $in: parcels.map(p => p._id) } },
+      {
+        $set: {
+          "service.warnedBeforeExpiry": true
+        }
+      }
+    );
+
+    console.log(`[CRON] Sent expiry warning to ${parcels.length} parcels`);
+
+  } catch (err) {
+    console.error("[CRON] Expiry warning failed", err);
+  }
+});
+
+
+
+/// EXTEND
+
+app.get("/parcel/:id/extend", async (req, res) => {
+  const parcel = await Parcel2.findOne({ customId: req.params.id });
+
+  if (!parcel) {
+    return res.status(404).send("Parcel not found");
+  }
+
+  res.render("extendParcel", {
+    parcel,
+    razorpayKey: process.env.RAZORPAY_KEY_ID
+  });
+});
+
+
+app.post("/api/parcel/extend/create-order", async (req, res) => {
+  const { parcelId, hours, amount } = req.body;
+
+  const parcel = await Parcel2.findById(parcelId);
+  if (!parcel) {
+    return res.status(404).json({ error: "Parcel not found" });
+  }
+
+  const order = await razorpay.orders.create({
+    amount: amount * 100,
+    currency: "INR",
+    receipt: `extend_${parcel.customId}`
+  });
+
+  res.json(order);
+});
+
+
+
+app.post("/api/parcel/extend/verify", async (req, res) => {
+  const {
+    parcelId,
+    hours,
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature
+  } = req.body;
+
+  const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+  const expected = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(body)
+    .digest("hex");
+
+  if (expected !== razorpay_signature) {
+    return res.status(400).json({ success: false, message: "Invalid signature" });
+  }
+
+  const parcel = await Parcel2.findById(parcelId);
+  if (!parcel) {
+    return res.status(404).json({ success: false, message: "Parcel not found" });
+  }
+
+  const base = parcel.expiresAt > new Date()
+    ? parcel.expiresAt
+    : new Date();
+
+  parcel.expiresAt = new Date(base.getTime() + hours * 60 * 60 * 1000);
+  parcel.status = "awaiting_pick";
+  parcel.paymentStatus = "completed";
+
+  await parcel.save();
+
+  res.json({
+    success: true,
+    newExpiresAt: parcel.expiresAt
+  });
+});
+
+
+
+
+//// CALCULATE PRICE
+
+cron.schedule("*/1 * * * *", async () => {
+  try {
+    const now = new Date();
+
+    const result = await Parcel2.updateMany(
+      {
+        status: "awaiting_pick",
+        expiresAt: { $lt: now }
+      },
+      {
+        $set: {
+          status: "overstay",
+          "service.overstayStartedAt": now,
+          "billing.isChargeable": true,
+          "billing.lastCalculatedAt": now
+        }
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(`[CRON] Moved ${result.modifiedCount} parcels to overstay`);
+    }
+
+  } catch (err) {
+    console.error("[CRON] Overstay transition failed", err);
+  }
+});
+
+
+
+function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
+  if (!expiresAt || !ratePerHour) {
+    return { hours: 0, amount: 0 };
+  }
+
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+
+  const diffMs = now - expiry;
+  if (diffMs <= 0) {
+    return { hours: 0, amount: 0 };
+  }
+
+  const hours = Math.ceil(diffMs / (1000 * 60 * 60));
+  const amount = hours * ratePerHour;
+
+  return { hours, amount };
+}
+
+
+
+
+
+cron.schedule("*/1 * * * *", async () => {
+  try {
+    const now = new Date();
+
+    const parcels = await Parcel2.find({
+      status: "overstay",
+      "billing.isChargeable": true,
+    }).select("_id expiresAt billing.ratePerHour billing.amountAccrued");
+
+    if (!parcels.length) return;
+
+    const bulkOps = [];
+
+    for (const parcel of parcels) {
+      const { hours, amount } = calculateOverstayFromExpiry(
+        parcel.expiresAt,
+        parcel.billing.ratePerHour
+      );
+
+      // only update if amount changed
+      if (amount !== parcel.billing.amountAccrued) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: parcel._id },
+            update: {
+              $set: {
+                "billing.amountAccrued": amount,
+                "billing.lastCalculatedAt": now
+              }
+            }
+          }
+        });
+      }
+    }
+
+    if (bulkOps.length) {
+      await Parcel2.bulkWrite(bulkOps);
+      console.log(`[CRON] Overstay recalculated: ${bulkOps.length}`);
+    }
+
+  } catch (err) {
+    console.error("[CRON] Overstay billing failed", err);
+  }
+});
+
+
+
+
+
+
 
 
 

@@ -47,18 +47,21 @@ razorpayPaymentLink: { type: String },
 paymentStatus: { type: String, default: "pending" },
 
 
-  status: {
-    type: String,
-    enum: [
-      "awaiting_payment", // sender has not yet paid
-      "awaiting_drop",    // waiting for sender to drop the parcel
-      "awaiting_pick",    // receiver is yet to pick it up
-      "in_transit",       // being moved by courier
-      "picked",           // receiver has picked
-      "expired"           // expired in locker
-    ],
-    default: "awaiting_payment"
-  },
+status: {
+  type: String,
+  enum: [
+    "awaiting_payment",
+    "awaiting_drop",
+    "awaiting_pick",
+    "in_transit",
+    "picked",
+    "picked_with_overstay",
+    "overstay",              // ⬅️ service expired but still held
+    "closed_no_charge",      // ⬅️ reassigned or expired
+    "expired"                // legacy / optional
+  ],
+  default: "awaiting_payment"
+},
 
   transitInfo: {
     courier: String,
@@ -88,7 +91,36 @@ paymentStatus: { type: String, default: "pending" },
   droppedAt: Date,
   pickedAt: Date,
   expiresAt: { type: Date, required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
+
+  // =======================
+// EXPIRY & OVERSTAY LOGIC
+// =======================
+
+service: {
+  overstayStartedAt: { type: Date },        // when normal service expired
+  maxHoldUntil: { type: Date },  // after this → no liability
+   warnedBeforeExpiry: { type: Boolean, default: false }           
+},
+
+billing: {
+  isChargeable: { type: Boolean, default: false },
+  ratePerHour: { type: Number, default: 20 }, // ₹20/hr example
+  amountAccrued: { type: Number, default: 0 },
+  lastCalculatedAt: { type: Date }
+},
+
+closureReason: {
+  type: String,
+  enum: [
+    "picked_up",
+    "reassigned_no_charge",
+    "expired_no_liability"
+  ]
+}
+
+
 });
 
 module.exports = mongoose.model("Parcel2", ParcelSchema);

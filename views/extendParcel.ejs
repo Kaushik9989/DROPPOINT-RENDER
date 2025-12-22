@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Extend Parcel Time</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-dark text-white d-flex align-items-center justify-content-center" style="min-height:100vh">
+
+<div class="card p-4 shadow-lg" style="max-width:420px;width:100%">
+  <h4 class="mb-2">Extend Locker Time</h4>
+  <p class="text-muted">Parcel ID: <%= parcel.customId %></p>
+
+  <div class="mb-3">
+    <label class="form-label">Parcel Size</label>
+    <input class="form-control" value="<%= parcel.size %>" disabled>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Extend by (hours)</label>
+    <select id="hours" class="form-select">
+      <option value="1">1 hour</option>
+      <option value="2">2 hours</option>
+      <option value="3">3 hours</option>
+      <option value="6">6 hours</option>
+      <option value="12">12 hours</option>
+    </select>
+  </div>
+
+  <h3 class="mb-3">
+    Amount: ₹<span id="amount">0</span>
+  </h3>
+
+  <button id="payBtn" class="btn btn-warning w-100">
+    Pay & Extend
+  </button>
+
+  <p class="small text-muted mt-3 text-center">
+    Extension applies immediately after payment
+  </p>
+</div>
+
+<script>
+  const RATE = {
+    small: 5,
+    medium: 10,
+    large: 20
+  };
+
+  const parcelSize = "<%= parcel.size %>";
+  const rate = RATE[parcelSize] || 0;
+
+  const hoursEl = document.getElementById("hours");
+  const amountEl = document.getElementById("amount");
+
+  function updateAmount() {
+    const hours = Number(hoursEl.value);
+    amountEl.textContent = hours * rate;
+  }
+
+  updateAmount();
+  hoursEl.addEventListener("change", updateAmount);
+
+  document.getElementById("payBtn").onclick = async () => {
+    const hours = Number(hoursEl.value);
+    const amount = hours * rate;
+
+    if (amount <= 0) {
+      alert("Invalid amount");
+      return;
+    }
+
+    const resp = await fetch("/api/parcel/extend/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        parcelId: "<%= parcel._id %>",
+        hours,
+        amount
+      })
+    });
+
+    const order = await resp.json();
+    if (!order || order.error) {
+      alert("Failed to create payment order");
+      return;
+    }
+
+    const options = {
+      key: "<%= razorpayKey %>",
+      amount: order.amount,
+      currency: "INR",
+      name: "DropPoint",
+      description: "Extend Locker Time",
+      order_id: order.id,
+
+      handler: async function (response) {
+        const verify = await fetch("/api/parcel/extend/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            parcelId: "<%= parcel._id %>",
+            hours,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+          })
+        });
+
+        const data = await verify.json();
+        if (data.success) {
+          alert("Time extended successfully");
+          window.location.href = "/";
+        } else {
+          alert(data.message || "Verification failed");
+        }
+      }
+    };
+
+    new Razorpay(options).open();
+  };
+</script>
+
+</body>
+</html>
