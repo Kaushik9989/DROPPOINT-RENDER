@@ -11,45 +11,20 @@
   <style>
     body {
       background: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
       color: #0f172a;
     }
-    
-        .navbar {
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: #1a1a1a;
-            
-        }
+    .navbar {
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
 
-        .fab {
-            color: white;
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-            width: 120px;
-            height: 120px;
-            font-size: 3rem;
-            background: #070265;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border-radius: 50%;
-            background: #070265;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            font-size: 32px;
-        }
-
-        .fab:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #1a1a1a;
+    }
 
     .page {
       max-width: 420px;
@@ -78,13 +53,11 @@
       background: #dc2626;
       color: #fff;
       margin-left: 6px;
-      vertical-align: middle;
     }
 
     .form-label {
       font-size: 0.75rem;
       color: #475569;
-      margin-bottom: 4px;
     }
 
     .form-control,
@@ -94,12 +67,6 @@
       font-size: 0.95rem;
     }
 
-    .form-control:disabled,
-    .form-select:disabled {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-
     .amount-box {
       background: linear-gradient(135deg, #fde68a, #facc15);
       color: #78350f;
@@ -107,7 +74,7 @@
       border-radius: 12px;
       text-align: center;
       font-weight: 800;
-      font-size: 1.35rem;
+      font-size: 1.4rem;
     }
 
     .alert-danger {
@@ -118,13 +85,11 @@
       font-size: 0.85rem;
     }
 
-    /* Mobile primary action */
     .bottom-action {
       position: sticky;
       bottom: 0;
       background: #ffffff;
-      padding: 12px 0 0;
-      margin-top: 16px;
+      padding-top: 16px;
     }
 
     .btn-warning {
@@ -136,34 +101,25 @@
       border: none;
     }
 
-    .btn-warning:disabled {
-      background: #d1d5db;
-      color: #6b7280;
-    }
-
     .text-muted {
-      color: #64748b !important;
       font-size: 0.8rem;
+      color: #64748b !important;
     }
   </style>
 </head>
 
 <body>
-   <!-- Top Navbar -->
-    <nav class="navbar navbar-light bg-white px-3 py-2 sticky-top shadow-sm">
-        <a class="navbar-brand d-flex align-items-center" href="/mobileDashboard">
-            <img src="/uploads/mobile-logo.png" alt="Logo" height="30" class="me-2" />
-            <span>DropPoint</span>
-        </a>
 
-        <!-- User Dropdown -->
-        
-
-    </nav>
-
+<nav class="navbar px-3 py-2 sticky-top">
+  <a class="navbar-brand d-flex align-items-center" href="/">
+    <img src="/uploads/mobile-logo.png" height="30" class="me-2">
+    DropPoint
+  </a>
+</nav>
 
 <div class="page">
   <div class="card p-3">
+
     <h4 class="mb-1">
       Extend Locker Time
       <% if (parcel.status === "overstay") { %>
@@ -177,7 +133,9 @@
 
     <% if (parcel.status === "overstay") { %>
       <div class="alert alert-danger mb-3">
-        ⛔ Extension disabled. Parcel has overstayed. Please contact support or pay penalty.
+        ⛔ Parcel has overstayed.<br>
+        <strong>Penalty:</strong> ₹<%= parcel.billing.amountAccrued %><br>
+        Please pay penalty + extension charges to continue.
       </div>
     <% } %>
 
@@ -188,11 +146,7 @@
 
     <div class="mb-3">
       <label class="form-label">Extend by (hours)</label>
-      <select
-        id="hours"
-        class="form-select"
-        <%= parcel.status === "overstay" ? "disabled" : "" %>
-      >
+      <select id="hours" class="form-select">
         <option value="1">1 hour</option>
         <option value="2">2 hours</option>
         <option value="3">3 hours</option>
@@ -200,6 +154,12 @@
         <option value="12">12 hours</option>
       </select>
     </div>
+
+    <% if (parcel.status === "overstay") { %>
+      <p class="text-center fw-bold text-danger mb-2">
+        Penalty Amount: ₹<span id="penalty"><%= parcel.billing.amountAccrued %></span>
+      </p>
+    <% } %>
 
     <div class="amount-box mb-2">
       ₹<span id="amount">0</span>
@@ -210,19 +170,18 @@
     </p>
 
     <div class="bottom-action">
-      <button
-        id="payBtn"
-        class="btn btn-warning"
-        <%= parcel.status === "overstay" ? "disabled" : "" %>
-      >
+      <button id="payBtn" class="btn btn-warning">
         Pay & Extend
       </button>
     </div>
+
   </div>
 </div>
 
 <script>
   const PARCEL_STATUS = "<%= parcel.status %>";
+  const IS_OVERSTAY = PARCEL_STATUS === "overstay";
+  const PENALTY = IS_OVERSTAY ? Number("<%= parcel.billing.amountAccrued || 0 %>") : 0;
 
   const RATE = { small: 5, medium: 10, large: 20 };
   const rate = RATE["<%= parcel.size %>"] || 0;
@@ -231,25 +190,20 @@
   const amountEl = document.getElementById("amount");
 
   function updateAmount() {
-    amountEl.textContent = Number(hoursEl.value) * rate;
+    const extensionAmount = Number(hoursEl.value) * rate;
+    const total = PENALTY + extensionAmount;
+    amountEl.textContent = total;
   }
 
   updateAmount();
-  hoursEl?.addEventListener("change", updateAmount);
+  hoursEl.addEventListener("change", updateAmount);
 
   document.getElementById("payBtn").onclick = async () => {
-    if (PARCEL_STATUS === "overstay") {
-      alert("Parcel has overstayed. Extension not allowed.");
-      return;
-    }
-
-
-
-
     const hours = Number(hoursEl.value);
-    const amount = hours * rate;
+    const extensionAmount = hours * rate;
+    const totalAmount = PENALTY + extensionAmount;
 
-    if (amount <= 0) {
+    if (totalAmount <= 0) {
       alert("Invalid amount");
       return;
     }
@@ -260,7 +214,9 @@
       body: JSON.stringify({
         parcelId: "<%= parcel._id %>",
         hours,
-        amount
+        amount: totalAmount,
+        penalty: PENALTY,
+        extensionAmount
       })
     });
 
@@ -296,7 +252,7 @@
           alert("Time extended successfully");
           window.location.href = "/";
         } else {
-          alert(data.message || "Verification failed");
+          alert(data.message || "Payment verification failed");
         }
       }
     };

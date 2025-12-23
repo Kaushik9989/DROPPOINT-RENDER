@@ -2766,10 +2766,6 @@ const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
   let qrImage;
     
       qrImage = await QRCode.toDataURL(accessCode);
-
-
-
- 
   res.render("mobile/qrPage", { parcel,qrImage });
   }
   catch(err){
@@ -3390,7 +3386,6 @@ if (compSize && parcelSize) {
   })
 })
 
-
     // mark compartment booked & persist locker
     compartment.isBooked = true;
     compartment.isLocked = false;
@@ -3780,15 +3775,7 @@ app.get("/parcel/:id/extend", async (req, res) => {
     }
 
     // 🚫 Block extension if overstayed
-    if (parcel.status === "overstayed") {
-      return res.status(403).render("error", {
-        title: "Extension Not Allowed",
-        message: "This parcel has overstayed and cannot be extended. Please contact support."
-      });
-      // OR simply:
-      // return res.status(403).send("Parcel overstayed. Extension not allowed.");
-    }
-
+    
     // ✅ Allow extension
     res.render("extendParcel", {
       parcel,
