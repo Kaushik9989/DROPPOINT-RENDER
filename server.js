@@ -3839,15 +3839,21 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
     return res.status(404).json({ success: false, message: "Parcel not found" });
   }
 
-  const base = parcel.expiresAt > new Date()
-    ? parcel.expiresAt
-    : new Date();
+const base = parcel.expiresAt > new Date()
+  ? parcel.expiresAt
+  : new Date();
 
-  parcel.expiresAt = new Date(base.getTime() + hours * 60 * 60 * 1000);
-  parcel.status = "awaiting_pick";
-  parcel.paymentStatus = "completed";
+await Parcel2.updateOne(
+  { _id: parcelId },
+  {
+    $set: {
+      expiresAt: new Date(base.getTime() + hours * 60 * 60 * 1000),
+      status: "awaiting_pick",
+      paymentStatus: "completed"
+    }
+  }
+);
 
-  await parcel.save();
 
   res.json({
     success: true,
