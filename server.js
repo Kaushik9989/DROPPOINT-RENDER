@@ -3704,7 +3704,7 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
 
 //// NEW EXPIRY
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
   try {
     const now = new Date();
     const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
@@ -3866,7 +3866,7 @@ await Parcel2.updateOne(
 
 //// CALCULATE PRICE
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("*/2 * * * *", async () => {
   try {
     const now = new Date();
 
@@ -3919,7 +3919,7 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
 
 ///// CALCULATION
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("*/2 * * * *", async () => {
   try {
     const now = new Date();
 
