@@ -2410,9 +2410,11 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
      razorpayPaymentLink: razorpayPaymentLink || null,
-      customId
-    });
-
+      customId,
+      billing:{
+        ratePerHour:  cost.toString()
+  }});
+    
     await parcel.save();
     req.session.inProgressParcelId = parcel._id;
     if(store_self){
@@ -3842,7 +3844,10 @@ await Parcel2.updateOne(
     $set: {
       expiresAt: new Date(base.getTime() + hours * 60 * 60 * 1000),
       status: "awaiting_pick",
-      paymentStatus: "completed"
+      paymentStatus: "completed",
+      service :{
+        warnedBeforeExpiry : false,
+      }
     }
   }
 );
