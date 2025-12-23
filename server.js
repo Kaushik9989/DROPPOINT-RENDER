@@ -2759,7 +2759,8 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
 
 
 app.get("/mobile/incoming/:id/qr", async (req, res) => {
-  const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
+  try{
+const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
   const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
   let qrImage;
@@ -2770,6 +2771,11 @@ app.get("/mobile/incoming/:id/qr", async (req, res) => {
 
  
   res.render("mobile/qrPage", { parcel,qrImage });
+  }
+  catch(err){
+    res.send("INTERNAL SERVER ERROR!")
+  }
+  
 });
 
 // routes/qr.js (or inside app.js)
