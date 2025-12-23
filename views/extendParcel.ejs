@@ -7,65 +7,245 @@
 
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #0f172a;
+    }
+    
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            
+        }
+
+        .fab {
+            color: white;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            width: 120px;
+            height: 120px;
+            font-size: 3rem;
+            background: #070265;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 50%;
+            background: #070265;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            font-size: 32px;
+        }
+
+        .fab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        }
+
+    .page {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .card {
+      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+
+    h4 {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: #dc2626;
+      color: #fff;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .form-label {
+      font-size: 0.75rem;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      font-size: 0.95rem;
+    }
+
+    .form-control:disabled,
+    .form-select:disabled {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .amount-box {
+      background: linear-gradient(135deg, #fde68a, #facc15);
+      color: #78350f;
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 1.35rem;
+    }
+
+    .alert-danger {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    /* Mobile primary action */
+    .bottom-action {
+      position: sticky;
+      bottom: 0;
+      background: #ffffff;
+      padding: 12px 0 0;
+      margin-top: 16px;
+    }
+
+    .btn-warning {
+      width: 100%;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      border: none;
+    }
+
+    .btn-warning:disabled {
+      background: #d1d5db;
+      color: #6b7280;
+    }
+
+    .text-muted {
+      color: #64748b !important;
+      font-size: 0.8rem;
+    }
+  </style>
 </head>
 
-<body class="bg-dark text-white d-flex align-items-center justify-content-center" style="min-height:100vh">
+<body>
+   <!-- Top Navbar -->
+    <nav class="navbar navbar-light bg-white px-3 py-2 sticky-top shadow-sm">
+        <a class="navbar-brand d-flex align-items-center" href="/mobileDashboard">
+            <img src="/uploads/mobile-logo.png" alt="Logo" height="30" class="me-2" />
+            <span>DropPoint</span>
+        </a>
 
-<div class="card p-4 shadow-lg" style="max-width:420px;width:100%">
-  <h4 class="mb-2">Extend Locker Time</h4>
-  <p class="text-muted">Parcel ID: <%= parcel.customId %></p>
+        <!-- User Dropdown -->
+        
 
-  <div class="mb-3">
-    <label class="form-label">Parcel Size</label>
-    <input class="form-control" value="<%= parcel.size %>" disabled>
+    </nav>
+
+
+<div class="page">
+  <div class="card p-3">
+    <h4 class="mb-1">
+      Extend Locker Time
+      <% if (parcel.status === "overstay") { %>
+        <span class="status-pill">OVERSTAYED</span>
+      <% } %>
+    </h4>
+
+    <p class="text-muted mb-3">
+      Parcel ID: <strong><%= parcel.customId %></strong>
+    </p>
+
+    <% if (parcel.status === "overstay") { %>
+      <div class="alert alert-danger mb-3">
+        ⛔ Extension disabled. Parcel has overstayed. Please contact support or pay penalty.
+      </div>
+    <% } %>
+
+    <div class="mb-3">
+      <label class="form-label">Parcel Size</label>
+      <input class="form-control" value="<%= parcel.size %>" disabled>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Extend by (hours)</label>
+      <select
+        id="hours"
+        class="form-select"
+        <%= parcel.status === "overstay" ? "disabled" : "" %>
+      >
+        <option value="1">1 hour</option>
+        <option value="2">2 hours</option>
+        <option value="3">3 hours</option>
+        <option value="6">6 hours</option>
+        <option value="12">12 hours</option>
+      </select>
+    </div>
+
+    <div class="amount-box mb-2">
+      ₹<span id="amount">0</span>
+    </div>
+
+    <p class="text-muted text-center">
+      Extension applies immediately after payment
+    </p>
+
+    <div class="bottom-action">
+      <button
+        id="payBtn"
+        class="btn btn-warning"
+        <%= parcel.status === "overstay" ? "disabled" : "" %>
+      >
+        Pay & Extend
+      </button>
+    </div>
   </div>
-
-  <div class="mb-3">
-    <label class="form-label">Extend by (hours)</label>
-    <select id="hours" class="form-select">
-      <option value="1">1 hour</option>
-      <option value="2">2 hours</option>
-      <option value="3">3 hours</option>
-      <option value="6">6 hours</option>
-      <option value="12">12 hours</option>
-    </select>
-  </div>
-
-  <h3 class="mb-3">
-    Amount: ₹<span id="amount">0</span>
-  </h3>
-
-  <button id="payBtn" class="btn btn-warning w-100">
-    Pay & Extend
-  </button>
-
-  <p class="small text-muted mt-3 text-center">
-    Extension applies immediately after payment
-  </p>
 </div>
 
 <script>
-  const RATE = {
-    small: 5,
-    medium: 10,
-    large: 20
-  };
+  const PARCEL_STATUS = "<%= parcel.status %>";
 
-  const parcelSize = "<%= parcel.size %>";
-  const rate = RATE[parcelSize] || 0;
+  const RATE = { small: 5, medium: 10, large: 20 };
+  const rate = RATE["<%= parcel.size %>"] || 0;
 
   const hoursEl = document.getElementById("hours");
   const amountEl = document.getElementById("amount");
 
   function updateAmount() {
-    const hours = Number(hoursEl.value);
-    amountEl.textContent = hours * rate;
+    amountEl.textContent = Number(hoursEl.value) * rate;
   }
 
   updateAmount();
-  hoursEl.addEventListener("change", updateAmount);
+  hoursEl?.addEventListener("change", updateAmount);
 
   document.getElementById("payBtn").onclick = async () => {
+    if (PARCEL_STATUS === "overstay") {
+      alert("Parcel has overstayed. Extension not allowed.");
+      return;
+    }
+
+
+
+
     const hours = Number(hoursEl.value);
     const amount = hours * rate;
 

@@ -3712,17 +3712,36 @@ cron.schedule("*/1 * * * *", async () => {
     // 1️⃣ Find parcels that need warning
     const parcels = await Parcel2.find({
       status: "awaiting_pick",
-      expiresAt: { $lt: now },
+      expiresAt: {
+  $gt: now,
+  $lte: tenMinutesLater
+},
       "service.warnedBeforeExpiry": { $ne: true }
-    }).select("_id receiverPhone"); // ⬅️ only what we need
+    }).select("_id receiverPhone expiresAt customId");
+ // ⬅️ only what we need
 
     if (!parcels.length) return;
 
     // 2️⃣ Send notifications
     for (const parcel of parcels) {
-       const smsText2 = `Your locker service expires in 10 minutes. Extend now to avoid extra charges. Please extend your service by using this link:  parcel${parcel.customId}/extend - DROPPOINT`;
-  const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
-  console.log(sendResult2);
+  //      const smsText2 = `Your locker service expires in 10 minutes. Extend now to avoid extra charges. Please extend your service by using this link:  parcel${parcel.customId}/extend - DROPPOINT`;
+  // const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
+  // console.log(sendResult2);
+      await client.messages.create({
+    to: `whatsapp:+91${parcel.receiverPhone}`,
+    from: 'whatsapp:+15558076515',
+    contentSid: 'HX65997da06bfbd6cb7b0b76a70a16398f',
+    contentVariables: JSON.stringify({
+     1: new Date(parcel.expiresAt).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit"
+  }),
+      2: parcel.customId,
+      4: parcel.customId,
+      
+    }),
+  });
     }
 
     // 3️⃣ Mark warned (NO VALIDATION, NO SAVE)
@@ -3747,17 +3766,34 @@ cron.schedule("*/1 * * * *", async () => {
 /// EXTEND
 
 app.get("/parcel/:id/extend", async (req, res) => {
-  const parcel = await Parcel2.findOne({ customId: req.params.id });
+  try {
+    const parcel = await Parcel2.findOne({ customId: req.params.id });
 
-  if (!parcel) {
-    return res.status(404).send("Parcel not found");
+    if (!parcel) {
+      return res.status(404).send("Parcel not found");
+    }
+
+    // 🚫 Block extension if overstayed
+    if (parcel.status === "overstayed") {
+      return res.status(403).render("error", {
+        title: "Extension Not Allowed",
+        message: "This parcel has overstayed and cannot be extended. Please contact support."
+      });
+      // OR simply:
+      // return res.status(403).send("Parcel overstayed. Extension not allowed.");
+    }
+
+    // ✅ Allow extension
+    res.render("extendParcel", {
+      parcel,
+      razorpayKey: process.env.RAZORPAY_KEY_ID
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Something went wrong");
   }
-
-  res.render("extendParcel", {
-    parcel,
-    razorpayKey: process.env.RAZORPAY_KEY_ID
-  });
 });
+
 
 
 app.post("/api/parcel/extend/create-order", async (req, res) => {
