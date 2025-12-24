@@ -323,14 +323,14 @@
     <!-- Floating Action Button with Menu -->
     <div class="fab-menu-container">
         <button class="btn fab d-flex align-items-center justify-content-center" id="fabToggle"
-            style="background-color: #ff6600;">
+            style="background-color: #ff6600;"> 
             <i class="fa-solid fa-plus fa-beat" style="color: #ffffff;"></i>
         </button>
         <div class="fab-menu d-none flex-column position-absolute">
             <a href="/mobile/sendParcel" class="btn btn-light mb-2">Send</a>
-            <a href="/mobile/allocate" class="btn btn-light mb-2">Allocate</a>
+            <a href="/mobile/allocate" class="btn btn-light mb-2">Receive</a>
             <a href="/mobile/store" class="btn btn-light mb-2">Store</a>
-            <a href="/mobile/receive" class="btn btn-light">Receive</a>
+           
         </div>
     </div>
 
@@ -359,7 +359,7 @@
         <ul class="nav nav-tabs mb-3" id="parcelTabs" role="tablist" style="font-size: .8rem;">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button"
-                    role="tab" style="color: #1a1a1a;">Sent Parcels</button>
+                    role="tab" style="color: #1a1a1a;">Outbound</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button"
@@ -367,7 +367,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="stored-tab" data-bs-toggle="tab" data-bs-target="#stored" type="button"
-                    role="tab" style="color: #1a1a1a;">Stored Parcels </button>
+                    role="tab" style="color: #1a1a1a;">Stored</button>
             </li>
         </ul>
 

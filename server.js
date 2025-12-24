@@ -2712,7 +2712,7 @@ app.get("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res
     }
 
     // ✅ Filter available compartments (isBooked == false)
-    const availableCompartments = locker.compartments.filter(c => !c.isBooked);
+    const availableCompartments = locker.compartments.filter(c => (!c.isBooked) || (c.isOverstay));
 
     // Render EJS and pass locker + available compartments
     res.render("mobile/parcel/select-size", {

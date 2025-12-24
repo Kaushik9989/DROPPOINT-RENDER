@@ -41,86 +41,11 @@
             animation: slideDown 0.3s ease forwards;
             transform-origin: top;
         }
-
-        /* Fullscreen Overlay */
-        #customLoader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999;
-            opacity: 1;
-            transition: opacity 0.4s ease-out, visibility 0.4s;
-        }
-
-        /* Loader Animation Container */
-        .loader-container {
-            position: relative;
-            width: 70px;
-            height: 70px;
-        }
-
-        /* Pulsing circle */
-        .pulse-circle {
-            position: absolute;
-            width: 70px;
-            height: 70px;
-            background: #f6a534;
-            border-radius: 50%;
-            animation: pulse 1.4s ease-in-out infinite;
-        }
-
-        /* Rotating ring */
-        .ring {
-            position: absolute;
-            width: 70px;
-            height: 70px;
-            border: 4px solid transparent;
-            border-top-color: #1a1a1a;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        /* Pulse Animation */
-        @keyframes pulse {
-            0% {
-                transform: scale(0.7);
-                opacity: 0.6;
-            }
-
-            50% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            100% {
-                transform: scale(0.7);
-                opacity: 0.6;
-            }
-        }
-
-        /* Spin Animation */
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
     </style>
 </head>
 
 <body class="bg-light">
-    <div id="customLoader">
-        <div class="loader-container">
-            <div class="pulse-circle"></div>
-            <div class="ring"></div>
-        </div>
-    </div>
-
+   
     <!-- Navbar -->
     <!-- Navbar -->
     <nav class="navbar navbar-light px-3 py-2 sticky-top shadow-sm">
@@ -228,22 +153,11 @@
                                         <div class="mb-3">
                                             <label class="form-label">Recipient Phone</label>
                                             <div class="input-group">
-                                                <span class="input-group-text">
-                                                    <i class="fas fa-phone"></i> +91 -
-                                                </span>
-                                                <input type="tel" name="receiverPhone" id="receiverPhone"
-                                                    class="form-control" />
-                                                
-                                                <!-- New button -->
-                                                <button type="button" class="btn btn-outline-secondary"
-                                                    id="pickContactBtn">
-                                                    <i class="fa-solid fa-address-book"></i>
-                                                </button>
-                                                <input type="text" name="receiverName" id="receiverName" class="form-control" />
-
+                                                <span class="input-group-text"><i class="fas fa-phone"></i> +91
+                                                    -</span>
+                                                <input type="tel" name="receiverPhone" class="form-control" />
                                             </div>
                                         </div>
-
                                         <div class="form-check mb-3">
                                             <input class="form-check-input" type="checkbox" name="saveContact"
                                                 id="saveContactCheckbox" value="true">
@@ -342,96 +256,12 @@
 
                                     </div>
 
-                                    <button class="btn btn-primary w-100 mt-3" id="nextBtn">Next</button>
-
+                                    <button class="btn btn-primary w-100 mt-3">Next</button>
                                 </form>
             </div>
         </div>
     </div>
-    <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const pickBtn = document.getElementById("pickContactBtn");
-    const nameInput = document.getElementById("receiverName");
-    const phoneInput = document.getElementById("receiverPhone");
 
-    if (!pickBtn) return;
-
-    pickBtn.addEventListener("click", async () => {
-      // Only works inside the app
-      const cap = window.Capacitor;
-      if (!cap || !cap.Plugins || !cap.Plugins.Contacts) {
-        alert("Contact picker is only available in the mobile app.");
-        return;
-      }
-
-      const Contacts = cap.Plugins.Contacts;
-
-      try {
-        // 1) Ask permission
-        const permResult = await Contacts.requestPermissions();
-        if (permResult.contacts !== "granted") {
-          alert("Permission to access contacts was denied.");
-          return;
-        }
-
-        // 2) Let user pick a single contact
-        // Community plugin supports pickContact on recent versions 
-        const { contact } = await Contacts.pickContact({
-          projection: {
-            name: true,
-            phones: true
-          }
-        });
-
-        if (!contact) {
-          // user cancelled
-          return;
-        }
-
-        const displayName =
-          (contact.name && (contact.name.display || contact.name.given || contact.name.family)) ||
-          "";
-
-        const phoneNumber =
-          contact.phones && contact.phones.length > 0
-            ? contact.phones[0].number
-            : "";
-
-        if (displayName && nameInput) {
-          nameInput.value = displayName;
-        }
-        if (phoneNumber && phoneInput) {
-          // strip spaces etc, optional
-          phoneInput.value = phoneNumber.replace(/\s+/g, "");
-        }
-      } catch (err) {
-        console.error("Error using contacts plugin:", err);
-        alert("Could not access contacts on this device.");
-      }
-    });
-  });
-</script>
-
-    <script>
-        window.addEventListener("load", () => {
-            const loader = document.getElementById("customLoader");
-            loader.style.opacity = "0";
-
-            setTimeout(() => {
-                loader.style.visibility = "hidden";
-            }, 400); // match CSS transition
-        });
-    </script>
-
-    <script>
-        const form = document.querySelector("form");     // or give your form an ID
-        const nextBtn = document.getElementById("nextBtn");
-
-        form.addEventListener("submit", () => {
-            nextBtn.disabled = true;
-            nextBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Processing...`;
-        });
-    </script>
 
 
     <!-- Bootstrap JS (include at end of body) -->

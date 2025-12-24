@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Smart Locker Cabinet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+:root{
+  --bg:#0f172a;
+  --panel:#020617;
+  --door:#1e293b;
+  --selected:#f59e0b;
+  --text:#e5e7eb;
+  --radius:16px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  height:100vh;
+  background:var(--bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:system-ui,-apple-system,Segoe UI;
+  color:var(--text);
+  overflow:hidden;
+}
+
+/* Cabinet */
+.locker-cabinet{
+  display:flex;
+  gap:20px;
+  background:var(--panel);
+  padding:18px;
+  border-radius:26px;
+  box-shadow:0 30px 70px rgba(0,0,0,.6);
+  height:92vh;
+}
+
+/* Column */
+.column{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  width:220px;
+}
+
+/* Locker Door */
+.locker{
+  position:relative;
+  background:var(--door);
+  border-radius:var(--radius);
+  border:2px solid transparent;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:.15s ease;
+}
+
+.locker:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 22px rgba(0,0,0,.45);
+}
+
+.locker.selected{
+  border-color:var(--selected);
+  box-shadow:0 0 0 3px rgba(245,158,11,.35);
+}
+
+/* Sizes */
+.locker.small{height:70px}
+.locker.medium{height:110px}
+.locker.large{height:160px}
+
+/* Text */
+.locker-id{
+  font-size:20px;
+  font-weight:800;
+}
+
+.locker-size{
+  font-size:12px;
+  opacity:.75;
+}
+
+/* Handle */
+.handle{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  width:10px;
+  height:42px;
+  background:#94a3b8;
+  border-radius:6px;
+}
+/* 🔆 Glowing Locker */
+.locker.glow {
+  animation: glowPulse 1.6s infinite ease-in-out;
+  border-color: #38bdf8;
+}
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 6px rgba(56,189,248,0.4),
+                0 0 12px rgba(56,189,248,0.3);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(56,189,248,0.9),
+                0 0 32px rgba(56,189,248,0.6);
+  }
+  100% {
+    box-shadow: 0 0 6px rgba(56,189,248,0.4),
+                0 0 12px rgba(56,189,248,0.3);
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="locker-cabinet">
+
+  <div class="column" id="leftColumn"></div>
+  <div class="column" id="rightColumn"></div>
+
+</div>
+
+<script>
+const leftLockers = [
+  { size:"medium" },
+  { size:"small" },
+  { size:"small" },
+  { size:"small" },
+  { size:"large" },
+];
+
+const rightLockers = [
+  { size:"medium" },
+  { size:"small" },
+  { size:"small" },
+  { size:"small" },
+  { size:"small" },
+  { size:"medium" },
+];
+
+let selected = null;
+
+function renderLockers(data, containerId){
+  const container = document.getElementById(containerId);
+
+  data.forEach((locker, index) => {
+    const el = document.createElement("div");
+  el.className = `locker ${locker.status}`;
+
+if (locker.id === "L1") {
+  el.classList.add("glow");
+}
+
+
+    el.innerHTML = `
+      <div class="locker-id">${index + 1}</div>
+      <div class="locker-size">${locker.size.toUpperCase()}</div>
+      <div class="handle"></div>
+    `;
+
+    el.onclick = () => {
+      document
+        .querySelectorAll(".locker")
+        .forEach(l => l.classList.remove("selected"));
+
+      el.classList.add("selected");
+      selected = locker.size;
+      console.log("Selected locker size:", selected);
+    };
+
+    container.appendChild(el);
+  });
+}
+
+renderLockers(leftLockers, "leftColumn");
+renderLockers(rightLockers, "rightColumn");
+</script>
+
+</body>
+</html>
