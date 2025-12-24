@@ -3733,7 +3733,7 @@ cron.schedule("*/5 * * * *", async () => {
       await client.messages.create({
     to: `whatsapp:+91${parcel.receiverPhone}`,
     from: 'whatsapp:+15558076515',
-    contentSid: 'HX65997da06bfbd6cb7b0b76a70a16398f',
+    contentSid: 'HXc036d817795b127cb2cd86638d210b30',
     contentVariables: JSON.stringify({
      1: new Date(parcel.expiresAt).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
