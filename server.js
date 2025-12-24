@@ -3893,10 +3893,9 @@ cron.schedule("*/2 * * * *", async () => {
 });
 
 
-
 function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
   if (!expiresAt || !ratePerHour) {
-    return { hours: 0, amount: 0 };
+    return { hours: 0, days: 0, amount: 0 };
   }
 
   const now = new Date();
@@ -3904,13 +3903,39 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
 
   const diffMs = now - expiry;
   if (diffMs <= 0) {
-    return { hours: 0, amount: 0 };
+    return { hours: 0, days: 0, amount: 0 };
   }
 
-  const hours = Math.ceil(diffMs / (1000 * 60 * 60));
-  const amount = hours * ratePerHour;
+  const totalHours = Math.ceil(diffMs / (1000 * 60 * 60));
 
-  return { hours, amount };
+  let amount = 0;
+  let hoursCharged = 0;
+  let daysCharged = 0;
+
+  // 🕒 First 10 hours → hourly
+  if (totalHours <= 10) {
+    hoursCharged = totalHours;
+    amount = hoursCharged * ratePerHour;
+  } 
+  // 📆 After 10 hours → daily
+  else {
+    hoursCharged = 10;
+    const remainingHours = totalHours - 10;
+
+    daysCharged = Math.ceil(remainingHours / 24);
+
+    const ratePerDay = ratePerHour;
+
+    amount =
+      (hoursCharged * ratePerHour) +
+      (daysCharged * ratePerDay);
+  }
+
+  return {
+    hours: hoursCharged,
+    days: daysCharged,
+    amount
+  };
 }
 
 
