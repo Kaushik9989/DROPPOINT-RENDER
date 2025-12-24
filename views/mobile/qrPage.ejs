@@ -117,6 +117,82 @@
       .qr-card { padding: 22px 14px; }
       .qr-img { min-width: 200px; min-height: 200px; }
     }
+
+    .page {
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.qr-card {
+  background: #ffffff;
+  border-radius: var(--card-radius);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  width: 100%;
+  max-width: 520px;
+  padding: 22px 18px 26px;
+  margin: 0 auto;
+  text-align: center;
+  animation: fadeInUp 0.45s ease;
+}
+
+/* QR at top */
+.qr-img {
+  width: 60vmin;
+  height: 60vmin;
+  max-width: 420px;
+  max-height: 420px;
+  min-width: 220px;
+  min-height: 220px;
+  margin: 0 auto 18px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  background: #fff;
+}
+
+/* ACCESS CODE – HERO */
+.access-code {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #0f172a;
+  margin: 10px 0 14px;
+}
+
+/* Locker + Compartment row */
+.locker-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 18px;
+}
+
+.locker-pill {
+  background: #f1f5f9;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+/* Button at bottom */
+.btn-group-stack {
+  margin-top: 24px;
+}
+
+.btn-custom {
+  padding: 0.75rem 1.1rem;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+               "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial,
+               sans-serif;
+}
+
+
   </style>
 </head>
 
@@ -125,37 +201,61 @@
   <%- include('../partials/navbar') %>
 
   <!-- Centered page area -->
-  <main class="page">
-    <div class="qr-card">
-      <h4>
-        <i class="fas fa-box-open text-primary"></i>
-        Parcel QR Code
-      </h4>
+<main class="page">
+  <div class="qr-card">
+    <!-- TOP HEADING -->
+<div style="
+  font-size:0.9rem;
+  font-weight:800;
+  letter-spacing:0.18em;
+  color:#0f172a;
+  margin-bottom:14px;
+">
+  QUICK QR ACCESS
+</div>
 
-      <!-- QR (about half screen, square, centered) -->
-      <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
 
-      <!-- Info -->
-      <div class="info-block mt-3">
-        <div class="info-row"><i class="fas fa-lock"></i> Locker: <strong><%= parcel.lockerId || 'N/A' %></strong></div>
-        <div class="info-row"><i class="fas fa-cube"></i> Compartment: <strong><%= (parseInt(parcel.compartmentId) + 1) || 'N/A' %></strong></div>
-        <div class="info-row"><i class="fas fa-key"></i> Access Code: <strong><%= parcel.accessCode %></strong></div>
+    <!-- QR CODE AT TOP -->
+    <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
+    
+    <!-- ACCESS CODE BIG -->
+<!-- ACCESS CODE LABEL -->
+<div style="font-size:0.85rem; font-weight:700; letter-spacing:0.14em; color:#64748b;">
+  ACCESS CODE
+</div>
+
+<!-- ACCESS CODE BIG -->
+<div class="access-code">
+  <%= parcel.accessCode %>
+</div>
+
+
+    <!-- LOCKER + COMPARTMENT (ONE LINE) -->
+    <div class="locker-row">
+      <div class="locker-pill">
+        Locker : <%= parcel.lockerId || 'N/A' %>
       </div>
-
-      <!-- Actions -->
-      <div class="btn-group-stack">
-        <a
-          href="https://www.google.com/maps/dir/?api=1&destination=<%= parcel.lockerLat %>,<%= parcel.lockerLng %>"
-          target="_blank"
-          rel="noopener"
-          class="btn btn-primary btn-custom"
-        >
-          <i class="fas fa-location-arrow"></i>
-          Get Directions
-        </a>
+      <div class="locker-pill">
+        Compartment : <%= (parseInt(parcel.UsercompartmentId) + 1) || 'N/A' %>
       </div>
     </div>
-  </main>
+
+    <!-- GET DIRECTIONS AT LAST -->
+    <div class="btn-group-stack">
+      <a
+        href="https://www.google.com/maps/dir/?api=1&destination=<%= parcel.lockerLat %>,<%= parcel.lockerLng %>"
+        target="_blank"
+        rel="noopener"
+        class="btn btn-primary btn-custom"
+      >
+        <i class="fas fa-location-arrow me-2"></i>
+        Get Directions
+      </a>
+    </div>
+
+  </div>
+</main>
+
 
 
 </body>

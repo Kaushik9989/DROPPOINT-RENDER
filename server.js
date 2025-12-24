@@ -3915,9 +3915,9 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
 
 
 
-//// CALCULATE PRICE
+//// MOVE TO OVERSTAY
 
-cron.schedule("*/2 * * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   try {
     const now = new Date();
 
@@ -3983,7 +3983,7 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
 
 ///// CALCULATION
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("*/2 * * * *", async () => {
   try {
     const now = new Date();
 
@@ -4032,7 +4032,7 @@ cron.schedule("*/1 * * * *", async () => {
 
 //// LOCKER COMPARTMETN VOERSTAY UPDATION
 
-cron.schedule("*/3 * * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   try {
     // 1️⃣ Find all parcels currently in overstay
     const overstayedParcels = await Parcel2.find({
