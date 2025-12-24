@@ -92,7 +92,7 @@
     View Details
   </a>
 
-  <% if (parcel.status === 'awaiting_pick') { %>
+  <% if (parcel.status === 'awaiting_pick' || parcel.status === 'overstay') { %>
     <a href="/parcel/<%= parcel.customId %>/extend"
        class="btn btn-sm btn-outline-warning"
        style="border-radius: 8px; padding: 0.4rem 1rem;">

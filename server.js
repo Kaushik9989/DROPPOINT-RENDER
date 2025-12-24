@@ -3851,6 +3851,19 @@ await Parcel2.updateOne(
     }
   }
 );
+const expiresAtIST = new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+  await client.messages.create({
+    to: `whatsapp:+91${parcel.receiverPhone}`,
+    from: 'whatsapp:+15558076515',
+    contentSid: 'HX326d48ba43c9f5722acc6a82a79c5ca0',
+    contentVariables: JSON.stringify({
+      1: expiresAtIST,
+      2: parcel.customId,
+      
+    }),
+  });
+
 
 
   res.json({
@@ -3895,7 +3908,7 @@ cron.schedule("*/2 * * * *", async () => {
 
 function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
   if (!expiresAt || !ratePerHour) {
-    return { hours: 0, days: 0, amount: 0 };
+    return { hoursCharged: 0, amount: 0 };
   }
 
   const now = new Date();
@@ -3903,46 +3916,34 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
 
   const diffMs = now - expiry;
   if (diffMs <= 0) {
-    return { hours: 0, days: 0, amount: 0 };
+    return { hoursCharged: 0, amount: 0 };
   }
 
   const totalHours = Math.ceil(diffMs / (1000 * 60 * 60));
 
-  let amount = 0;
-  let hoursCharged = 0;
-  let daysCharged = 0;
+  let payableHours = 0;
 
-  // 🕒 First 10 hours → hourly
-  if (totalHours <= 10) {
-    hoursCharged = totalHours;
-    amount = hoursCharged * ratePerHour;
-  } 
-  // 📆 After 10 hours → daily
-  else {
-    hoursCharged = 10;
-    const remainingHours = totalHours - 10;
+  for (let hour = 1; hour <= totalHours; hour++) {
+    const cycleHour = (hour - 1) % 24 + 1; // 1 → 24
 
-    daysCharged = Math.ceil(remainingHours / 24);
-
-    const ratePerDay = ratePerHour;
-
-    amount =
-      (hoursCharged * ratePerHour) +
-      (daysCharged * ratePerDay);
+    // First 10 hours of every 24h cycle are chargeable
+    if (cycleHour <= 10) {
+      payableHours++;
+    }
   }
 
   return {
-    hours: hoursCharged,
-    days: daysCharged,
-    amount
+    hoursCharged: payableHours,
+    amount: payableHours * ratePerHour
   };
 }
 
 
 
+
 ///// CALCULATION
 
-cron.schedule("*/2 * * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   try {
     const now = new Date();
 
