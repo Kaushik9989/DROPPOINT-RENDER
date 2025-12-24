@@ -4,6 +4,7 @@ const CompartmentSchema = new mongoose.Schema({
   compartmentId: String,
   isLocked: { type: Boolean, default: true },
   isBooked: { type: Boolean, default: false },
+  isOverstay : {type : Boolean, default: false},
   currentParcelId : {type: String, default : null},
   size: {
     type: String,
@@ -19,8 +20,7 @@ const CompartmentSchema = new mongoose.Schema({
     dropOtp: { type: String, default: null }, 
     pickupOtp : {type : String, default : null},          // 6-digit OTP
     dropOtpExpiresAt: { type: Date, default: null },    // expiry
-    dropOtpUsed: { type: Boolean, default: false },  
-    freePeriod:{type : Boolean, defualt: false},   // one-time use
+    dropOtpUsed: { type: Boolean, default: false },     // one-time use
     pickupOtpUsed: { type: Boolean, default: false },   // one-time use
     recieverName :  { type: String, default: null },
     recieverPhone : {type: String, default: null}

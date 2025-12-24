@@ -3776,6 +3776,10 @@ app.get("/parcel/:id/extend", async (req, res) => {
       return res.status(404).send("Parcel not found");
     }
 
+    if(parcel.status === "expired"){
+      return res.status(404).send("Parcel Expired");
+    }
+
     // 🚫 Block extension if overstayed
     
     // ✅ Allow extension
@@ -3811,65 +3815,101 @@ app.post("/api/parcel/extend/create-order", async (req, res) => {
 
 
 app.post("/api/parcel/extend/verify", async (req, res) => {
-  const {
-    parcelId,
-    hours,
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature
-  } = req.body;
+  try {
+    const {
+      parcelId,
+      hours,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    } = req.body;
 
-  const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-  const expected = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    .update(body)
-    .digest("hex");
+    // 🔐 Verify Razorpay signature
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expected = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
 
-  if (expected !== razorpay_signature) {
-    return res.status(400).json({ success: false, message: "Invalid signature" });
-  }
-
-  const parcel = await Parcel2.findById(parcelId);
-  if (!parcel) {
-    return res.status(404).json({ success: false, message: "Parcel not found" });
-  }
-
-const base = parcel.expiresAt > new Date()
-  ? parcel.expiresAt
-  : new Date();
-
-await Parcel2.updateOne(
-  { _id: parcelId },
-  {
-    $set: {
-      expiresAt: new Date(base.getTime() + hours * 60 * 60 * 1000),
-      status: "awaiting_pick",
-      paymentStatus: "completed",
-      service :{
-        warnedBeforeExpiry : false,
-      }
+    if (expected !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Invalid signature" });
     }
+
+    const parcel = await Parcel2.findById(parcelId);
+    if (!parcel) {
+      return res.status(404).json({ success: false, message: "Parcel not found" });
+    }
+
+    // ⏱ Calculate new expiry
+    const base = parcel.expiresAt > new Date()
+      ? parcel.expiresAt
+      : new Date();
+
+    const newExpiry = new Date(
+      base.getTime() + hours * 60 * 60 * 1000
+    );
+
+    // 1️⃣ Update parcel
+    await Parcel2.updateOne(
+      { _id: parcelId },
+      {
+        $set: {
+          expiresAt: newExpiry,
+          status: "awaiting_pick",
+          paymentStatus: "completed",
+          "service.warnedBeforeExpiry": false
+        }
+      }
+    );
+
+    // 2️⃣ RESET locker overstay flag 🔥
+    if (parcel.lockerId && parcel.compartmentId) {
+      await Locker.updateOne(
+        {
+          lockerId: parcel.lockerId,
+          "compartments.compartmentId": parcel.compartmentId
+        },
+        {
+          $set: {
+            "compartments.$.isOverstay": false
+          }
+        }
+      );
+    }
+
+    // 📩 Notify user
+    const expiresAtIST = newExpiry.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    });
+
+    await client.messages.create({
+      to: `whatsapp:+91${parcel.receiverPhone}`,
+      from: "whatsapp:+15558076515",
+      contentSid: "HX326d48ba43c9f5722acc6a82a79c5ca0",
+      contentVariables: JSON.stringify({
+        1: expiresAtIST,
+        2: parcel.customId
+      })
+    });
+
+    // ✅ Response
+    res.json({
+      success: true,
+      newExpiryIST: newExpiry.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+      })
+    });
+
+  } catch (err) {
+    console.error("Extend verify error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-);
-const expiresAtIST = new Date(parcel.expiresAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-
-  await client.messages.create({
-    to: `whatsapp:+91${parcel.receiverPhone}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX326d48ba43c9f5722acc6a82a79c5ca0',
-    contentVariables: JSON.stringify({
-      1: expiresAtIST,
-      2: parcel.customId,
-      
-    }),
-  });
-
-
-
-  res.json({
-    success: true,
-    newExpiresAt: parcel.expiresAt
-  });
 });
 
 
@@ -3990,6 +4030,42 @@ cron.schedule("*/1 * * * *", async () => {
 
 
 
+//// LOCKER COMPARTMETN VOERSTAY UPDATION
+
+cron.schedule("*/3 * * * *", async () => {
+  try {
+    // 1️⃣ Find all parcels currently in overstay
+    const overstayedParcels = await Parcel2.find({
+      status: "overstay",
+      lockerId: { $exists: true },
+      compartmentId: { $exists: true }
+    }).select("lockerId compartmentId");
+
+    if (!overstayedParcels.length) return;
+
+    // 2️⃣ Update corresponding locker compartments
+    for (const parcel of overstayedParcels) {
+      await Locker.updateOne(
+        {
+          lockerId: parcel.lockerId,
+          "compartments.compartmentId": parcel.compartmentId
+        },
+        {
+          $set: {
+            "compartments.$.isOverstay": true
+          }
+        }
+      );
+    }
+
+    console.log(
+      `[LOCKER SYNC] Synced isOverstay for ${overstayedParcels.length} compartments`
+    );
+
+  } catch (err) {
+    console.error("[LOCKER SYNC] Failed to sync locker overstays", err);
+  }
+});
 
 
 
