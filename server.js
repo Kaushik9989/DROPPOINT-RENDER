@@ -3707,7 +3707,7 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
 
 //// NEW EXPIRY
 
-cron.schedule("*/5 * * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   try {
     const now = new Date();
     const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
