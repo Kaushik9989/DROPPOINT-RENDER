@@ -142,6 +142,78 @@
   flex-shrink: 0;
 }
 
+/* Grid spacing */
+.d-grid {
+  gap: 14px;
+}
+
+/* Card */
+.compartment-card {
+  width: 100%;
+  border: none;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.compartment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.12);
+}
+
+/* Number circle */
+.compartment-number {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff7b00, #ff9800);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 14px;
+}
+
+/* Title */
+.compartment-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111;
+}
+
+.comp-id {
+  margin-left: 6px;
+  font-weight: 700;
+  color: #ff7b00;
+}
+
+/* Size pill */
+.size-pill {
+  margin-top: 4px;
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+/* Status badge */
+.badge-available {
+  background: #16a34a !important;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+}
+
+
   </style>
 
 </head>
@@ -183,42 +255,45 @@
 
           <!-- Compartment List -->
           <div class="d-grid gap-3">
-            <% availableCompartments.forEach((compartment)=> { %>
 
-              <form method="POST" action="/mobile/allocate/confirm">
-                <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
-                <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
+  <% availableCompartments.forEach((compartment) => { %>
 
-                <button type="submit" class="compartment-card">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                      <div class="compartment-number">
-                        <%= parseInt(compartment.compartmentId) + 1 %>
-                      </div>
+    <form method="POST" action="/mobile/allocate/confirm">
+      <input type="hidden" name="lockerId" value="<%= locker.lockerId %>" />
+      <input type="hidden" name="compartmentId" value="<%= compartment.compartmentId %>" />
 
-                      <div>
-                        <div class="compartment-title">
-                          Compartment
-                        </div>
+      <button type="submit" class="compartment-card">
+        <div class="d-flex justify-content-between align-items-center">
 
-                        <% if (compartment.size) { %>
-                          <div class="size-pill">
-                            <%= compartment.size %>
-                          </div>
-                          <% } %>
-                      </div>
-                    </div>
+          <div class="d-flex align-items-center">
+            <div>
+              <div class="compartment-title">
+                Compartment 
+                <span class="comp-id">
+                  <%= parseInt(compartment.compartmentId) + 1 %>
+                </span>
+              <% if (compartment.size) { %>
+                <div class="size-pill">
+                  <%= compartment.size %>
+                </div>
+              <% } %>
+              </div>
 
 
-                    <span class="badge bg-success badge-available">
-                      Available
-                    </span>
-                  </div>
-                </button>
-              </form>
-
-              <% }) %>
+            </div>
           </div>
+
+          <span class="badge bg-success badge-available">
+            Available
+          </span>
+
+        </div>
+      </button>
+    </form>
+
+  <% }) %>
+
+</div>
 
           <!-- Back -->
           <div class="bottom-action">
