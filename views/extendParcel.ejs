@@ -238,6 +238,10 @@
     <small>12 hrs</small>
   </div>
 </div>
+<p class="text-center mt-2 fw-semibold">
+  ⏰ New expiry time:
+  <span id="expiryPreview" class="text-success">--</span>
+</p>
 
 
     <% if (parcel.status === "overstay") { %>
@@ -318,13 +322,40 @@ function redirectHome() {
     amountEl.textContent = total;
   }
 
+  const expiryPreviewEl = document.getElementById("expiryPreview");
+
+// Convert to readable time
+function formatTime(date) {
+  return date.toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+}
+
+function updateExpiryPreview() {
+  const hours = Number(hoursEl.value);
+
+  const now = new Date();
+  const newExpiry = new Date(now.getTime() + hours * 60 * 60 * 1000);
+
+  expiryPreviewEl.textContent = formatTime(newExpiry);
+}
+
+
   updateAmount();
+  updateExpiryPreview();
+
  const hoursValueEl = document.getElementById("hoursValue");
 
 hoursEl.addEventListener("input", () => {
   hoursValueEl.textContent = hoursEl.value;
   updateAmount();
+  updateExpiryPreview();
 });
+
 
 
   document.getElementById("payBtn").onclick = async () => {
