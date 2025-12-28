@@ -3621,7 +3621,7 @@ app.get("/mobile/allocate/select/:lockerId", isAuthenticated, async(req,res)=>{
       return res.redirect("/mobile/allocate");
     }
 
-    const availableCompartments = locker.compartments.filter(c => !c.isBooked);
+    const availableCompartments = locker.compartments.filter(c => (!c.isBooked) || (c.isOverstay));
     res.render("mobile/allocate-size",{locker,availableCompartments});  
   }catch(e){
     console.error("Error selecting locker:", e);
@@ -3650,7 +3650,7 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
     const locker = await Locker.findOne({ lockerId });
     if (!locker) {
       req.flash("error", "Locker not found");
-      return res.redirect("/mobile/allocate");
+      return res.redirect("/mobile/allocate");  
     }
 
     const compartment = locker.compartments.find(
