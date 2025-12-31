@@ -229,13 +229,16 @@ html, body {
     justify-content: center;
   }
 }
+@media screen and(orientation: landscape){
 
-@media screen and (orientation: landscape) {
-  .hide-on-landscape {
+
+  /* Hide navbar completely */
+
+ .navbar
+  {
     display: none !important;
   }
 }
-
 
   </style>
 </head>
@@ -248,7 +251,7 @@ html, body {
 <main class="page">
   <div class="qr-card">
     <!-- TOP HEADING -->
-<div class="hide-on-landscape" style="
+<div style="
   font-size:0.9rem;
   font-weight:800;
   letter-spacing:0.18em;
