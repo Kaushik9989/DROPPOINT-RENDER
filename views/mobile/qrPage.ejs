@@ -319,29 +319,6 @@
   }
 }
 
-/* PICKED watermark */
-.picked-stamp {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-25deg);
-  font-size: 3.2rem;
-  font-weight: 900;
-  letter-spacing: 0.25em;
-  color: rgba(16, 185, 129, 0.85); /* green */
-  border: 6px solid rgba(16, 185, 129, 0.85);
-  padding: 12px 26px;
-  border-radius: 10px;
-  pointer-events: none;
-  text-transform: uppercase;
-  z-index: 5;
-}
-
-/* Wrapper so stamp sits on QR */
-.qr-wrapper {
-  position: relative;
-  display: inline-block;
-}
 
 
   </style>
@@ -412,13 +389,7 @@
 
 
       <!-- QR CODE AT TOP -->
-  <div class="qr-wrapper">
-  <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
-
-  <% if (parcel.status === 'picked') { %>
-    <div class="picked-stamp">PICKED</div>
-  <% } %>
-</div>
+      <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
 
       <!-- ACCESS CODE BIG -->
       <!-- ACCESS CODE LABEL -->
