@@ -192,6 +192,43 @@ html, body {
                sans-serif;
 }
 
+/* ================================
+   LANDSCAPE MODE – QR ONLY VIEW
+================================ */
+@media screen and (orientation: landscape) {
+
+  body {
+    background: #000; /* optional – looks clean for scanning */
+  }
+
+  .qr-card {
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* Hide everything except QR */
+  .qr-card > *:not(.qr-img) {
+    display: none !important;
+  }
+
+  /* Make QR large & centered */
+  .qr-img {
+    width: 90vmin;
+    height: 90vmin;
+    max-width: 520px;
+    max-height: 520px;
+    margin: auto;
+    border-radius: 18px;
+  }
+
+  .page {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
 
   </style>
 </head>
