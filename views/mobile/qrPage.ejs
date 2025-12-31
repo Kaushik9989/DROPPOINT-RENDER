@@ -195,16 +195,35 @@ html, body {
 /* ================================
    LANDSCAPE MODE – QR ONLY VIEW
 ================================ */
+/* ================================
+   LANDSCAPE MODE – QR ONLY VIEW
+================================ */
 @media screen and (orientation: landscape) {
 
-  body {
-    background: #000; /* optional – looks clean for scanning */
+  /* Hide navbar completely */
+  .navbar {
+    display: none !important;
   }
 
-  .qr-card {
+  /* Remove background & padding */
+  body {
+    background: #ffffff;
+    margin: 0;
+  }
+
+  .page {
     padding: 0;
-    box-shadow: none;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Remove card UI */
+  .qr-card {
     background: transparent;
+    box-shadow: none;
+    padding: 0;
   }
 
   /* Hide everything except QR */
@@ -212,7 +231,7 @@ html, body {
     display: none !important;
   }
 
-  /* Make QR large & centered */
+  /* Make QR BIG */
   .qr-img {
     width: 90vmin;
     height: 90vmin;
@@ -221,31 +240,90 @@ html, body {
     margin: auto;
     border-radius: 18px;
   }
-
-  .page {
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 }
-@media screen and(orientation: landscape){
 
 
-  /* Hide navbar completely */
-
- .navbar
-  {
-    display: none !important;
-  }
-}
 
   </style>
+  <style>
+  .navbar {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    z-index: 1060;
+  }
+
+  .navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #1a1a1a;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dropdown-menu {
+    animation: slideDown 0.3s ease forwards;
+    transform-origin: top;
+  }
+
+</style>
 </head>
 
 <body>
   <!-- Navbar (kept as-is) -->
-  <%- include('../partials/navbar') %>
+<nav class="navbar navbar-light px-3 py-2 sticky-top shadow-sm">
+  <div class="d-flex align-items-center w-100 justify-content-between">
+    <!-- Back Button and Logo -->
+    <div class="d-flex align-items-center">
+      <button 
+  onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = 'https://demo.droppoint.in/'; }" 
+  class="btn btn-link p-0 me-3" 
+  style="font-size: 1.2rem; color: #333;">
+  
+
+        <i class="fas fa-arrow-left"></i>
+     </button>
+      <a class="navbar-brand d-flex align-items-center mb-0" href="/mobileDashboard">
+        <img src="/uploads/mobile-logo.png" alt="Logo" height="40" class="me-2" />
+        <span>DropPoint</span>
+      </a>
+    </div>
+
+    <!-- User Dropdown -->
+    <div class="dropdown">
+      <a href="#" class="d-flex align-items-center justify-content-center rounded-circle bg-light shadow-sm p-2"
+        id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px;">
+        <i class="fa-solid fa-user fa-lg" style="color: #f6a534;"></i>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3" aria-labelledby="userDropdown">
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileDashboard">
+            <i class="fa-solid fa-house" style="color: #B197FC;"></i> Home
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 mt-1 mb-1" href="/mobileAccount">
+            <i class="fa-solid fa-user-gear text-success"></i> Profile
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 text-danger mt-1 mb-1" href="/logout">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
 
   <!-- Centered page area -->
 <main class="page">
@@ -302,6 +380,9 @@ html, body {
 
   </div>
 </main>
+<!-- Bootstrap JS (include at end of body) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 
 
