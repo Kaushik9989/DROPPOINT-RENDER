@@ -12,7 +12,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
 <style>
-:root{
+:root {
   --card-radius: 20px;
 }
 
@@ -24,7 +24,7 @@ html, body {
                "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* TRUE viewport lock */
+/* Full viewport wrapper */
 .page {
   height: 100dvh;
   display: flex;
@@ -34,11 +34,11 @@ html, body {
   overflow: hidden;
 }
 
-/* Card never exceeds viewport */
+/* Card container */
 .qr-card {
   background: #ffffff;
   border-radius: var(--card-radius);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
   width: 100%;
   max-width: 520px;
   max-height: 92dvh;
@@ -48,18 +48,15 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-
-  animation: fadeInUp 0.45s ease;
 }
 
-/* QR always fits screen in both orientations */
+/* QR – auto fits any orientation */
 .qr-img {
   width: min(80vw, 45vh);
   height: min(80vw, 45vh);
 
   max-width: 420px;
   max-height: 420px;
-
   min-width: 220px;
   min-height: 220px;
 
@@ -71,7 +68,7 @@ html, body {
   object-fit: contain;
 }
 
-/* Access code */
+/* Headings */
 .access-code {
   font-size: 2.4rem;
   font-weight: 800;
@@ -108,18 +105,50 @@ html, body {
   border-radius: 12px;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Navbar */
+.navbar {
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  z-index: 1060;
 }
 
-/* Small phones */
+/* Very small phones */
 @media (max-width: 360px) {
   .qr-img {
     min-width: 200px;
     min-height: 200px;
   }
 }
+
+/* Landscape — QR hero mode */
+@media screen and (orientation: landscape) {
+
+  .navbar {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .qr-card {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .qr-card > *:not(.qr-img) {
+    display: none;
+  }
+
+  .qr-img {
+    width: min(70vh, 80vw);
+    height: min(70vh, 80vw);
+    max-width: 520px;
+    max-height: 520px;
+  }
+}
+
 </style>
 </head>
 
