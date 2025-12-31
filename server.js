@@ -2768,7 +2768,7 @@ const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
   let qrImage;
     
       qrImage = await QRCode.toDataURL(accessCode);
-  res.render("mobile/qrPage2", { parcel,qrImage });
+  res.render("mobile/qrPage", { parcel,qrImage });
   }
   catch(err){
     res.send("INTERNAL SERVER ERROR!")
