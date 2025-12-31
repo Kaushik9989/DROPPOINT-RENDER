@@ -230,6 +230,13 @@ html, body {
   }
 }
 
+@media screen and (orientation: landscape) {
+  .hide-on-landscape {
+    display: none !important;
+  }
+}
+
+
   </style>
 </head>
 
@@ -241,7 +248,7 @@ html, body {
 <main class="page">
   <div class="qr-card">
     <!-- TOP HEADING -->
-<div style="
+<div class="hide-on-landscape" style="
   font-size:0.9rem;
   font-weight:800;
   letter-spacing:0.18em;
