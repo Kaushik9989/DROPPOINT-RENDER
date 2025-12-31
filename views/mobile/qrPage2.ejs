@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta name="theme-color" content="#0f172a">
+<meta charset="UTF-8" />
+<title>Parcel Status</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+
+<style>
+:root{
+  --card-radius: 20px;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #f4f6f8;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+               "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* TRUE viewport lock */
+.page {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+/* Card never exceeds viewport */
+.qr-card {
+  background: #ffffff;
+  border-radius: var(--card-radius);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  width: 100%;
+  max-width: 520px;
+  max-height: 92dvh;
+  padding: 22px 18px 26px;
+  text-align: center;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  animation: fadeInUp 0.45s ease;
+}
+
+/* QR always fits screen in both orientations */
+.qr-img {
+  width: min(80vw, 45vh);
+  height: min(80vw, 45vh);
+
+  max-width: 420px;
+  max-height: 420px;
+
+  min-width: 220px;
+  min-height: 220px;
+
+  margin: 0 auto 18px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  background: #fff;
+  object-fit: contain;
+}
+
+/* Access code */
+.access-code {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #0f172a;
+  margin: 10px 0 14px;
+}
+
+/* Locker row */
+.locker-row {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 18px;
+}
+
+.locker-pill {
+  background: #f1f5f9;
+  padding: 8px 14px;
+  border-radius: 999px;
+}
+
+/* Button */
+.btn-group-stack {
+  margin-top: 18px;
+}
+
+.btn-custom {
+  padding: 0.75rem 1.1rem;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Small phones */
+@media (max-width: 360px) {
+  .qr-img {
+    min-width: 200px;
+    min-height: 200px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<%- include('../partials/navbar') %>
+
+<main class="page">
+  <div class="qr-card">
+
+    <div style="font-size:0.9rem;font-weight:800;letter-spacing:0.18em;color:#0f172a;margin-bottom:14px;">
+      QUICK QR ACCESS
+    </div>
+
+    <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
+
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:0.14em;color:#64748b;">
+      ACCESS CODE
+    </div>
+
+    <div class="access-code">
+      <%= parcel.accessCode %>
+    </div>
+
+    <div class="locker-row">
+      <div class="locker-pill">Locker : <%= parcel.lockerId || 'N/A' %></div>
+      <div class="locker-pill">Compartment : <%= (parseInt(parcel.UsercompartmentId)) || 'N/A' %></div>
+    </div>
+
+    <div class="btn-group-stack">
+      <a
+        href="https://www.google.com/maps/dir/?api=1&destination=<%= parcel.lockerLat %>,<%= parcel.lockerLng %>"
+        target="_blank"
+        class="btn btn-primary btn-custom"
+      >
+        <i class="fas fa-location-arrow me-2"></i>
+        Get Directions
+      </a>
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>
