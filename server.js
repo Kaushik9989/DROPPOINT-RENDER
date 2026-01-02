@@ -2171,9 +2171,12 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
     recipientPincode,
     selectedLocker,
     saveContact,
+    duration
     
   } = req.body;
-
+  console.log(duration);
+    req.session.parcelDraft.duration = duration;
+    
   /// SAVE CONTACT FLOW
   if (saveContact === 'true' && receiverName && receiverPhone) {
     try {
@@ -2220,7 +2223,7 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.receiverName = receiverName;
     req.session.parcelDraft.receiverPhone = receiverPhone;
     req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
-    
+  
 
     if (receiverDeliveryMethod === "address_delivery") {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
@@ -2287,14 +2290,14 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
   return res.redirect("/mobile/sendParcel");
 }
 
-    const { rate } = req.query;
+    const {rate} = req.query;
     const draft = req.session.parcelDraft;
     const lockerId = draft.selectedLocker;
     const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    let cost = getEstimatedCost(draft.size);
+  console.log(draft.duration);
+    let cost = getEstimatedCost(draft.size, draft.duration);
     if (draft.receiverDeliveryMethod === "address_delivery") {
       cost += parseFloat(rate);
     }
@@ -2340,7 +2343,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     
       status = "awaiting_payment";
       paymentStatus = "pending";
-      expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hours
+      //expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hours
       razorpayOrder = await razorpay.orders.create({
         amount: Math.round(parseFloat(cost) * 100),
         currency: "INR",
@@ -2382,12 +2385,12 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       accessCode,
       qrImage,
       store_self,
+      duration : draft.duration,
       lockerId: draft.lockerId || null,
       cost: cost.toString(),
       status,
       paymentStatus,
       droppedAt: null,
-      expiresAt,
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
      razorpayPaymentLink: razorpayPaymentLink || null,
@@ -4097,7 +4100,6 @@ for (const parcel of overstayedParcels) {
   );
 }
 
-
     console.log(
       `[LOCKER SYNC] Synced isOverstay for ${overstayedParcels.length} compartments`
     );
@@ -4113,6 +4115,56 @@ for (const parcel of overstayedParcels) {
 
 
 
+/// NEW CREDITS
+
+app.get("/wallet", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.user._id);
+  res.render("wallet", { user,
+      razorpayKey: process.env.RAZORPAY_KEY_ID
+  });
+});
+
+
+app.post("/wallet/create-order", isAuthenticated, async (req, res) => {
+  const { amount } = req.body;
+
+  const order = await razorpay.orders.create({
+    amount: amount * 100, // ₹ → paise
+    currency: "INR",
+    receipt: `wallet_${Date.now()}`
+  });
+
+  res.json(order);
+});
+
+
+// Verify Payment
+app.post("/wallet/verify", isAuthenticated, async (req, res) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    amount
+  } = req.body;
+
+  const sign = razorpay_order_id + "|" + razorpay_payment_id;
+
+  const expectedSign = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(sign)
+    .digest("hex");
+
+  if (expectedSign !== razorpay_signature) {
+    return res.status(400).json({ success: false });
+  }
+
+  // ✅ Payment verified → add credits
+  const user = await User.findById(req.user._id);
+  user.wallet.credits += Number(amount);
+  await user.save();
+
+  res.json({ success: true, balance: user.wallet.credits });
+});
 
 
 
@@ -4120,9 +4172,27 @@ for (const parcel of overstayedParcels) {
 
 
 
+app.post("/wallet/add", isAuthenticated, async (req, res) => {
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ success: false, msg: "Invalid amount" });
+  }
+
+  const user = await User.findById(req.user._id);
+
+  user.wallet.credits += Number(amount);
+  await user.save();
+
+  res.json({
+    success: true,
+    newBalance: user.wallet.credits
+  });
+});
 
 
 
+////////////////// ===============================END OF PRODUCTION CODE================================================================
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
 // GET: View wallet
 app.get("/:id/credits", isAuthenticated, async (req, res) => {
@@ -4133,7 +4203,7 @@ app.get("/:id/credits", isAuthenticated, async (req, res) => {
   } catch (err) {
     res.status(500).send("Server error");
   }
-});
+}); 
 
 // POST: Add credits
 app.post("/:id/credits/add", isAuthenticated, async (req, res) => {
@@ -4262,6 +4332,7 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     recipientPincode,
     selectedLocker,
     saveContact,
+    duration
     
   } = req.body;
    if (saveContact === 'true' && receiverName && receiverPhone) {
@@ -4315,6 +4386,7 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
     req.session.parcelDraft.paymentOption = "sender_pays";
     req.session.parcelDraft.status = "awaiting_drop";
+    req.session.parcelDraft.duration = duration;
     // 🔁 Extra logic for address delivery
     if (receiverDeliveryMethod === "address_delivery") {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
@@ -4406,7 +4478,7 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
       { headers }
     );
   
-    let lockercost = getEstimatedCost(draft.size);
+    let lockercost = getEstimatedCost(draft.size, draft.duration);
     const courierOptions = response.data.data.available_courier_companies;
       const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
     if (!courierOptions || courierOptions.length === 0) {
@@ -4607,10 +4679,16 @@ await SessionIntent.findOneAndUpdate(
 
 
 
-function getEstimatedCost(size) {
-  if (size === "small") return 5;
-  if (size === "medium") return 10;
-  return 20;
+function getEstimatedCost(size, duration) {
+  const hours = Number(duration); // convert string → number
+
+  let basePrice = 0;
+
+  if (size === "small") basePrice = 5;
+  else if (size === "medium") basePrice = 10;
+  else basePrice = 20;
+  console.log(basePrice * hours);
+  return basePrice * hours;
 }
 
 app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {

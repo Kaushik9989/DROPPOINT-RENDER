@@ -32,7 +32,7 @@
           <p class="text-muted mb-2" style="font-size: 0.9rem;">
             <%= parcel.terminal_store
                   ? "Stored using locker terminal"
-                  : (parcel.description || "No description available") %>
+                  : (parcel.description || " ") %>
           </p>
         </div>
         <span class="badge status-badge <%= parcel.status === 'picked'
@@ -76,9 +76,21 @@
         });
       %>
 
-      <p class="mb-1 text-muted" style="font-size: 0.85rem;">
-        Stored until: <%= formattedExpiry %>
-      </p>
+      
+<% if (parcel.status === 'awaiting_drop') { %>
+  <p class="mb-1 text-muted" style="font-size: 0.85rem;">
+    Reserved for : <b><%= parcel.duration + " Hours"%></b>
+  </p>
+<% } else { %>
+  <p class="mb-1 text-muted" style="font-size: 0.85rem;">
+    Stored until: <%= formattedExpiry %>
+  </p>
+<% } %>
+
+
+ 
+
+
 
       <p class="mb-0" style="font-size: 0.9rem;">
         Access Code: <strong><%= parcel.accessCode %></strong>
@@ -92,7 +104,8 @@
     View Details
   </a>
 
-  <% if (parcel.status === 'awaiting_pick' || parcel.status === 'overstay') { %>
+  <% if   (parcel.status === 'awaiting_pick' &&
+  (new Date(parcel.expiresAt) < new Date())) { %>
     <a href="/parcel/<%= parcel.customId %>/extend"
        class="btn btn-sm btn-outline-warning"
        style="border-radius: 8px; padding: 0.4rem 1rem;">

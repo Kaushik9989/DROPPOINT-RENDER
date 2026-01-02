@@ -258,11 +258,16 @@
             <small class="mb-2">Parcel ID: <span class="text-primary">
                 <%= parcel.customId %>
               </span></small>
-            <small><strong>Expires:</strong>
+              <% if(parcel.duration) {%>
+            <small>Reserved for:
+              <strong><%= parcel.duration + " Hours" %></strong>
+            </small>
+            <% } else {%>
+                <small><strong>Expires:</strong>
               <%= new Date(parcel.expiresAt).toLocaleString() %>
             </small>
-            <% if (isExpired) { %>
-              <% } %>
+            <%}%>
+            
       </div>
     </div>
     <div style="margin-left: 10px;">

@@ -45,7 +45,7 @@
 </head>
 
 <body class="bg-light">
-   
+
     <!-- Navbar -->
     <!-- Navbar -->
     <nav class="navbar navbar-light px-3 py-2 sticky-top shadow-sm">
@@ -126,6 +126,25 @@
                                         </select>
                                     </div>
 
+                                    <!-- Duration Selector -->
+                                        <div class="mb-4">
+                                            <label class="form-label fw-semibold">
+                                                ⏱ Storage Duration
+                                                <span class="text-muted">(in hours)</span>
+                                            </label>
+
+                                            <div class="d-flex align-items-center gap-3">
+                                                <input type="range" class="form-range" id="durationRange"
+                                                    name="duration" min="0" max="10" value="1" />
+                                                    
+                                                <span class="badge bg-primary fs-6" id="durationValue">1 hr</span>
+                                            </div>
+
+                                            <small class="" style="color: rgb(233, 17, 17)">
+                                               (Duration starts from the time of drop-off)
+                                            </small>
+                                        </div>
+
                                     <!-- Receiver Info Section -->
                                     <div id="receiverFields">
                                         <div class="mb-3">
@@ -158,6 +177,7 @@
                                                 <input type="tel" name="receiverPhone" class="form-control" />
                                             </div>
                                         </div>
+
                                         <div class="form-check mb-3">
                                             <input class="form-check-input" type="checkbox" name="saveContact"
                                                 id="saveContactCheckbox" value="true">
@@ -282,6 +302,17 @@
         });
 
     </script>
+    <script>
+        const durationRange = document.getElementById("durationRange");
+        const durationValue = document.getElementById("durationValue");
+
+        if (durationRange) {
+            durationRange.addEventListener("input", () => {
+                const val = durationRange.value;
+                durationValue.textContent = val + (val == 1 ? " hr" : " hrs");
+            });
+        }
+    </script>
 
 
 
@@ -320,7 +351,6 @@
         const estimateAmount = document.getElementById("estimateAmount");
         const finalAmount = document.getElementById("finalAmount");
         const lockerSelect = document.getElementById("lockerSelect");
-
         const recipientAddressInput = document.querySelector("[name='recipientAddress']");
         const recipientPincodeInput = document.querySelector("[name='recipientPincode']");
 

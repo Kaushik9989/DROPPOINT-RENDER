@@ -90,8 +90,9 @@ status: {
   selectedLockerPincode: {type : String},
   droppedAt: Date,
   pickedAt: Date,
-  expiresAt: { type: Date, required: true },
+  expiresAt: { type: Date, default : null },
   createdAt: { type: Date, default: Date.now },
+  duration : {type : String, default : null},
 
 
   // =======================

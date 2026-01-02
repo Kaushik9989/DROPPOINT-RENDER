@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wallet</title>
+
+    <!-- Razorpay -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --brand: #ff7a00;
+            --bg: #fffaf6;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --radius: 16px;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+
+        }
+
+        .wallet-card {
+
+            width: 100%;
+            max-width: 380px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            padding: 24px;
+        }
+
+        .wallet-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .wallet-header h2 {
+            margin: 0;
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .balance-box {
+            background: linear-gradient(135deg, #ff7a00, #ff9a3d);
+            color: white;
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .balance-box small {
+            opacity: 0.85;
+        }
+
+        .balance-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .form-control {
+            height: 50px;
+            border-radius: 12px;
+            font-size: 1rem;
+        }
+
+        .btn-pay {
+            background: var(--brand);
+            color: rgb(67, 63, 63);
+            border: none;
+            border-radius: 12px;
+            height: 52px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .btn-pay:hover {
+            background: #ff8c1a;
+        }
+
+        .note {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .info-card {
+  background: #fff3e6;
+  border: 1px solid #ffd6b3;
+  border-radius: 14px;
+  padding: 16px;
+  width: 90%;
+  font-size: 0.9rem;
+  color: #4b3b2a;
+}
+
+.info-card h6 {
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #ff7a00;
+}
+
+.info-card ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.info-card li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+    </style>
+</head>
+
+<body>
+
+    <%- include('./partials/navbar') %>
+
+        <div style="display: flex; justify-content: center;">
+        <div class="wallet-card mt-5">
+            <div class="wallet-header">
+                <h2>Your Credits</h2>
+            </div>
+
+            <div class="balance-box">
+                <small>Available Balance</small>
+                <div class="balance-amount">₹ <%= user.wallet.credits %>
+                </div>
+            </div>
+
+            <input type="number" id="amount" class="form-control" placeholder="(₹) Enter amount in rupees" />
+
+            <button class="btn w-100 mt-3" onclick="payNow()" style="background-color: #ff8c1a; color: white;">
+                Add Money
+            </button>
+
+            <div class="note">
+                Secure payments powered by Razorpay
+            </div>
+        </div>
+        </div>
+        <div style="display: flex; justify-content: center;">
+<div class="info-card mt-4">    
+  <h6>ℹ️ How your credits work</h6>
+
+  <ul>
+    <li>Use credits to <strong>book lockers instantly</strong></li>
+    <li>Credits can be used if your <strong>parcel exceeds free time/ reserved time</strong></li>
+    <li>Avoid locker expiry</li>
+    <li>Fast, secure & hassle-free payments</li>
+  </ul>
+</div>
+</div>
+
+        <script>
+            async function payNow() {
+                const amount = document.getElementById("amount").value;
+
+                if (!amount || amount <= 0) {
+                    alert("Enter valid amount");
+                    return;
+                }
+
+                const res = await fetch("/wallet/create-order", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ amount })
+                });
+
+                const order = await res.json();
+
+                const options = {
+                    key: "<%= razorpayKey %>",
+                    amount: order.amount,
+                    currency: "INR",
+                    name: "DropPoint",
+                    description: "Wallet Recharge",
+                    order_id: order.id,
+                    handler: async function (response) {
+                        const verify = await fetch("/wallet/verify", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                ...response,
+                                amount
+                            })
+                        });
+
+                        const result = await verify.json();
+
+                        if (result.success) {
+                            alert("✅ Payment Successful");
+                            location.reload();
+                        } else {
+                            alert("❌ Payment verification failed");
+                        }
+                    }
+                };
+
+                new Razorpay(options).open();
+            }
+        </script>
+
+</body>
+
+</html>
