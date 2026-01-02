@@ -4082,19 +4082,21 @@ cron.schedule("*/1 * * * *", async () => {
     if (!overstayedParcels.length) return;
 
     // 2️⃣ Update corresponding locker compartments
-    for (const parcel of overstayedParcels) {
-      await Locker.updateOne(
-        {
-          lockerId: parcel.lockerId,
-          "compartments.compartmentId": parcel.compartmentId
-        },
-        {
-          $set: {
-            "compartments.$.isOverstay": true
-          }
-        }
-      );
+for (const parcel of overstayedParcels) {
+  await Locker.updateOne(
+    {
+      lockerId: parcel.lockerId,
+      "compartments.compartmentId": parcel.compartmentId,
+      "compartments.isOverstay": false   // ✅ condition added
+    },
+    {
+      $set: {
+        "compartments.$.isOverstay": true
+      }
     }
+  );
+}
+
 
     console.log(
       `[LOCKER SYNC] Synced isOverstay for ${overstayedParcels.length} compartments`
