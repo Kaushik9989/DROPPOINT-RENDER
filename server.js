@@ -1988,12 +1988,18 @@ const storedParcels = await Parcel2.find({
       receiverPhone: user.phone
     });
 
+    const awaitingSendCount = await Parcel2.countDocuments({
+      status : "awaiting_drop",
+      receiverPhone:user.phone
+    });
+
     res.render("mobile/dashboard", {
       user,
       sentParcels,
       receivedParcels,
       storedParcels,
-      awaitingPickCount
+      awaitingPickCount,
+      awaitingSendCount
     });
 
   } catch (err) {

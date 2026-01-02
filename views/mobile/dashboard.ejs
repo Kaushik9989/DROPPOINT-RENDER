@@ -344,9 +344,30 @@
                 <div>
                     <h4 class="card-title fw-semibold mb-2" style="color: #fff;">Hello, <%= user.username %>
                     </h4>
-                    <p class="card-text fs-6 mb-0" style="color: #e0e0e0;">You have <strong>
-                            <%= awaitingPickCount %>
-                        </strong> parcel<%= awaitingPickCount===1 ? "" : "s" %> to pick up.</p>
+                    <p class="card-text fs-6 mb-0" style="color: #e0e0e0;">
+
+  <% if (awaitingPickCount === 0 && awaitingSendCount === 0) { %>
+    Click the <strong>"+"</strong> icon to begin!
+  <% } else { %>
+
+    <% if (awaitingPickCount > 0) { %>
+      You have <strong><%= awaitingPickCount %></strong>
+      parcel<%= awaitingPickCount === 1 ? "" : "s" %> to pick up.
+    <% } %>
+
+    <% if (awaitingPickCount > 0 && awaitingSendCount > 0) { %>
+      <br>
+    <% } %>
+
+    <% if (awaitingSendCount > 0) { %>
+      You have <strong><%= awaitingSendCount %></strong>
+      parcel<%= awaitingSendCount === 1 ? "" : "s" %> to drop.
+    <% } %>
+
+  <% } %>
+
+</p>
+
                 </div>
                 <div>
                     <i class="bi bi-box-seam-fill fs-1" style="color: #ffffffcc;"></i>
