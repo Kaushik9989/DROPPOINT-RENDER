@@ -53,8 +53,6 @@ const compression = require("compression");
 app.use(compression());
 require("dotenv").config();
 const { generateOtp, storeOtp, canResend, updateResendTimestamp, verifyOtp } = require("./otpStore");
-
-
 const server = http.createServer(app);
 const io = new Server(server);
 app.set('trust proxy', 1);
@@ -69,12 +67,10 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(methodOverride('_method'));
 app.use(express.static("public"));
-
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
-
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev-secret", // Use env var in production
@@ -94,11 +90,7 @@ app.use(
       rolling: true, 
   })
 );
-
-
-
 const LOGIN_COOKIE = 'login_phone';
-
 function setLoginPhoneCookie(res, phone) {
   res.cookie(LOGIN_COOKIE, phone, {
     signed: true,
@@ -145,17 +137,6 @@ app.use((req, res, next) => {
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-
-
-
-
-
-
-
-
-
-
 passport.use(
   new GoogleStrategy(
     {
@@ -3667,9 +3648,10 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
 
     // ⏱ OTP expiry (10 minutes)
     const freePeriod = new Date(Date.now() + 10 * 60 * 1000);
-
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
     // Save OTP on compartment
     compartment.bookingInfo.dropOtp = otp;
+    compartment.bookingInfo.dropOtpExpiresAt = expiresAt;
     compartment.bookingInfo.freePeriod = Date.now > freePeriod ? false : true;
     compartment.bookingInfo.dropOtpUsed = false;
     compartment.bookingInfo.recieverName = user.username;
@@ -3696,6 +3678,62 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
   }
 });
 
+
+
+//// IF OTP EXPIRED, DELETE BOOKING INFO
+
+cron.schedule("*/10 * * * * *", async () => {
+  try {
+    const now = new Date();
+
+    const lockers = await Locker.find({
+      "compartments.bookingInfo.dropOtpExpiresAt": { $lte: now },
+      "compartments.isBooked": true
+    });
+
+    for (const locker of lockers) {
+      let updated = false;
+
+      locker.compartments.forEach((comp) => {
+        const expiry = comp.bookingInfo?.dropOtpExpiresAt;
+
+        if (
+          comp.isBooked &&
+          expiry &&
+          new Date(expiry) <= now
+        ) {
+          // 🔥 Clear booking
+          comp.bookingInfo = {
+            pickupOtpUsed: false,
+            userId: null,
+            bookingTime: null,
+            otp: null,
+            pickupOtp: null,
+            dropOtpExpiresAt: null,
+            dropOtpUsed: false,
+            recieverName: null,
+            recieverPhone: null,
+            dropOtp: null
+          };
+
+          comp.isBooked = false;
+          comp.isLocked = true;
+          comp.currentParcelId = null;
+          comp.isOverstay = false;
+
+          updated = true;
+        }
+      });
+
+      if (updated) {
+        await locker.save();
+        console.log(`✅ Cleared expired bookings in locker ${locker.lockerId}`);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Cron error:", err.message);
+  }
+});
 
 
 
