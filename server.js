@@ -42,8 +42,7 @@ const PORT = 8080;
 const ejsMate = require("ejs-mate");
 const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
-const MONGO_URI =
-  "mongodb+srv://vivekkaushik2005:0OShH2EJiRwMSt4m@cluster0.vaqwvzd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+
 const QRCode = require("qrcode");
 require("dotenv").config();
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
@@ -67,6 +66,8 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(methodOverride('_method'));
 app.use(express.static("public"));
+const MONGO_URI =
+  process.env.MONGO_URI;
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
@@ -4121,7 +4122,7 @@ for (const parcel of overstayedParcels) {
 
 
 
-/// NEW CREDITS
+/// NEW CREDITS WALLET NEW
 
 app.get("/wallet", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.user._id);
