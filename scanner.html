@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fast QR Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+  <!-- jsQR library -->
+  <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+
+    .scan-box {
+      position: fixed;
+      width: 280px;
+      height: 280px;
+      border: 3px solid #00ff88;
+      border-radius: 12px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+
+<body>
+
+  <video id="video" autoplay playsinline></video>
+  <div class="scan-box"></div>
+<script>
+const video = document.getElementById("video");
+
+navigator.mediaDevices.getUserMedia({
+  video: {
+    facingMode: "environment"  // back camera on phone
+  }
+}).then(stream => {
+  video.srcObject = stream;
+});
+</script>
+<script>
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+
+let scanning = true;
+
+function scanLoop() {
+  if (!scanning) return;
+
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert" // ⚡ faster
+    });
+
+    if (code) {
+      scanning = false;
+      console.log("QR FOUND:", code.data);
+
+      // 🔥 Do something with result
+      alert("Scanned: " + code.data);
+
+      // Stop camera
+      video.srcObject.getTracks().forEach(track => track.stop());
+
+      return;
+    }
+  }
+
+  requestAnimationFrame(scanLoop);
+}
+
+requestAnimationFrame(scanLoop);
+</script>
+
+</body>
+</html>
