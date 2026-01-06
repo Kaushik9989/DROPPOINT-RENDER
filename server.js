@@ -42,7 +42,6 @@ const PORT = 8080;
 const ejsMate = require("ejs-mate");
 const flash = require("connect-flash");
 const expressLayouts = require("express-ejs-layouts");
-
 const QRCode = require("qrcode");
 require("dotenv").config();
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
@@ -3859,8 +3858,6 @@ app.post("/api/parcel/extend/create-order", async (req, res) => {
 
   res.json(order);
 });
-
-
 
 app.post("/api/parcel/extend/verify", async (req, res) => {
   try {

@@ -318,6 +318,36 @@
     align-self: flex-start;
   }
 }
+.qr-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.qr-picked::after {
+  content: "PICKED";
+  position: absolute;
+  top: 45%;
+  left: 53%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+
+  color: rgb(5, 163, 5);/* 🔥 much stronger */
+  
+
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+
+.qr-picked .qr-img {
+  filter: grayscale(1) contrast(0.9);
+}
+
 
 
 
@@ -389,7 +419,10 @@
 
 
       <!-- QR CODE AT TOP -->
-      <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
+      <div class="qr-wrapper <%= parcel.status === 'picked' ? 'qr-picked' : '' %>">
+  <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
+</div>
+
 
       <!-- ACCESS CODE BIG -->
       <!-- ACCESS CODE LABEL -->
