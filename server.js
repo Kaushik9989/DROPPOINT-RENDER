@@ -2725,6 +2725,7 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
   if (!user) return res.redirect("/login");
   const lockerId = req.params.lockerId;
   const size = req.body.size;
+  const duration = req.body.duration;
   const locker = await Locker.findOne({ lockerId });
   if (!locker) {
     req.flash("error", "Locker not found");
@@ -2736,6 +2737,7 @@ app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, re
     isSelf: true,
     type: "package",
     size: size,
+    duration: duration,
     lockerId: locker.lockerId,
     location_id: locker.location?._id || null,
     lockerLat: locker.location?.lat,
