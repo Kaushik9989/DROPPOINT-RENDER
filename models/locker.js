@@ -41,7 +41,12 @@ const LockerSchema = new mongoose.Schema({
     address: { type: String },
      pincode: {type :String }
   },
-  compartments: [CompartmentSchema]
+  compartments: [CompartmentSchema],
+AnalyticStats: {
+  storeStats: { type: Number, default: 0 },
+  sendStats: { type: Number, default: 0 },
+  receiveStats: { type: Number, default: 0 },
+}
 });
 
 module.exports = mongoose.model('Locker', LockerSchema);

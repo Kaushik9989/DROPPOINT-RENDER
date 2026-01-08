@@ -2760,7 +2760,7 @@ const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
   let qrImage;
     
       qrImage = await QRCode.toDataURL(accessCode);
-  res.render("mobile/qrPage", { parcel,qrImage });
+  res.render("mobile/qrPage2", { parcel,qrImage });
   }
   catch(err){
     res.send("INTERNAL SERVER ERROR!")
@@ -4449,8 +4449,6 @@ if (
 
 });
 
-
-
 app.get("/send/estimate", isAuthenticated, async (req, res) => {
   try {
     const draft = req.session.parcelDraft;
@@ -4568,8 +4566,8 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
       receiverPhone: draft.receiverPhone,
        // Save address and locker info
       recipientAddress : draft.recipientAddress,
-    recipientPincode : draft.recipientPincode,
-    selectedLocker : draft.selectedLocker,
+      recipientPincode : draft.recipientPincode,
+      selectedLocker : draft.selectedLocker,
     selectedLockerPincode : draft.selectedLockerPincode,
       accessCode,
       qrImage,
@@ -4609,7 +4607,7 @@ await FunnelEvent.create({
     });
 
   } catch (error) {
-    console.error("❌ Error in /send/step3:", error);
+    console.error("❌ Error in /mobile/send/step3:", error);
     req.flash("error", "Something went wrong. Please try again.");
     res.redirect("/dashboard");
   }
