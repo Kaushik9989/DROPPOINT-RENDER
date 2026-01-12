@@ -6877,9 +6877,7 @@ app.post("/locker/cancel", isAuthenticated, async (req, res) => {
     res.status(500).send("Server error");
   }
 });
-app.use((req, res, next) => {
-  res.status(404).render("errorpage", { errorMessage: "Page Not Found (404)" });
-});
+
 
 // Admin Logout
 app.get("/admin/logout", (req, res) => {
@@ -6964,6 +6962,7 @@ function generateApiKey(partnerName) {
   const random = crypto.randomBytes(24).toString("hex");
   return `dp_live_${partnerName.toLowerCase()}_${random}`;
 }
+
 
 app.post("/admin/create-partner", async (req, res) => {
   const { name } = req.body;
@@ -7097,7 +7096,9 @@ app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
 
 
 
-
+app.use((req, res, next) => {
+  res.status(404).render("errorpage", { errorMessage: "Page Not Found (404)" });
+});
 
 
 
