@@ -7011,14 +7011,11 @@ async function partnerAuth(req, res, next) {
 const DeliveryAgent = require("./models/deliveryAgent");
 
 
+
 function generateAccessCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
+
 
 app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
   try {
