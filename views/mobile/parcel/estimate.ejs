@@ -20,6 +20,16 @@
 <body class="bg-light">
 
 <%
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+
+  function getDeliveryDays(courier) {
+    if (courier.min_estimated_delivery_time) return Number(courier.min_estimated_delivery_time);
+    if (courier.estimated_delivery_days) return Number(courier.estimated_delivery_days);
+    return 3; // safe default
+  }
+
   function getDeliveryText(courier) {
     if (courier.min_estimated_delivery_time && courier.max_estimated_delivery_time) {
       if (courier.min_estimated_delivery_time === courier.max_estimated_delivery_time) {
@@ -33,17 +43,33 @@
     return "N/A";
   }
 
+  // 🔥 YOUR LOCKER PRICING LOGIC (PER COURIER)
+  function getLockerCostForCourier(courier) {
+    const days = getDeliveryDays(courier);
+
+    // Pricing rule:
+    // First 1 day free, then ₹10 per extra day
+    const freeDays = 0;
+    const perDay = 10;
+
+    if (days <= freeDays) return 0;
+    return (days - freeDays) * perDay;
+  }
+
+  // -----------------------------
+  // Sorting
+  // -----------------------------
+
   let sortedCouriers = [...courierOptions];
 
   const sortType = (typeof query !== "undefined" && query.sort) ? query.sort : "cheapest";
 
   if (sortType === "fastest") {
     sortedCouriers.sort((a, b) => {
-      const aTime = a.min_estimated_delivery_time || a.estimated_delivery_days || 999;
-      const bTime = b.min_estimated_delivery_time || b.estimated_delivery_days || 999;
-      return aTime - bTime;
+      return getDeliveryDays(a) - getDeliveryDays(b);
     });
   } else {
+    // cheapest
     sortedCouriers.sort((a, b) => a.rate - b.rate);
   }
 %>
@@ -54,8 +80,8 @@
   <div class="container mt-5">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="fw-semibold">Choose a Courier</h3>
-      
+      <h3 class="fw-semibold">🚚 Choose a Courier</h3>
+
       <div class="btn-group">
         <a href="?sort=cheapest" class="btn btn-outline-primary btn-sm <%= sortType === 'cheapest' ? 'active' : '' %>">
           💰 Cheapest
@@ -73,7 +99,8 @@
       <% } %>
 
       <% sortedCouriers.forEach(courier => { 
-        const total = courier.rate + lockercost;
+        const lockerCost = getLockerCostForCourier(courier);
+        const total = Number(courier.rate) + lockerCost;
       %>
 
         <div class="card shadow-sm mb-4 border-0">
@@ -87,7 +114,7 @@
               <ul class="list-unstyled text-secondary small mb-0">
                 <li>📦 Courier Cost: ₹<%= courier.rate %></li>
                 <li>⏱ Delivery Time: <%= getDeliveryText(courier) %></li>
-                <li>💼 Locker Fee: ₹<%= lockercost %></li>
+                <li>💼 Locker Fee: ₹<%= lockerCost %></li>
                 <li class="fw-bold text-dark mt-1">💰 Total: ₹<%= total %></li>
               </ul>
             </div>
@@ -95,6 +122,7 @@
             <form action="/mobile/send/step3" method="get">
               <input type="hidden" name="selectedCourierId" value="<%= courier.courier_company_id %>">
               <input type="hidden" name="rate" value="<%= courier.rate %>">
+              <input type="hidden" name="lockerCost" value="<%= lockerCost %>">
               <input type="hidden" name="totalCost" value="<%= total %>">
 
               <button type="submit" class="btn btn-outline-primary px-4 py-2 mt-3 mt-md-0">

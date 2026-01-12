@@ -2556,7 +2556,7 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       { headers }
     );
 
-    let lockercost = getEstimatedCost(draft.size,draft.duration);
+    
     const courierOptions = response.data.data.available_courier_companies;
     const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
     if (!courierOptions || courierOptions.length === 0) {
@@ -2564,11 +2564,13 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       return res.redirect("/mobile/send/step2");
     }
 
-   res.render("mobile/parcel/estimate", {
+res.render("mobile/parcel/estimate", {
   courierOptions,
-  lockercost,
-  query: req.query   // ✅ REQUIRED FOR SORT BUTTONS
+   parcelSize: draft.size,
+
+  query: req.query
 });
+
   }
   catch (err) {
     console.error("❌ Error fetching estimate:", err);
@@ -2576,6 +2578,18 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
     res.redirect("/mobile/send/step2");
   }
 });
+
+function calculateLockerCostByDays(size, days) {
+  const rates = {
+    small: 50,
+    medium: 100,
+    large: 200
+  };
+
+  const perDay = rates[size] || 100; // default medium
+  return perDay * Math.max(1, days);
+}
+
 
 
 app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {

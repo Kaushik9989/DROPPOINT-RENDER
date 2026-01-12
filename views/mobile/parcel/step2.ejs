@@ -355,7 +355,7 @@
             const lockerSelect = document.getElementById("lockerSelect");
             const recipientAddressInput = document.querySelector("[name='recipientAddress']");
             const recipientPincodeInput = document.querySelector("[name='recipientPincode']");
-
+            const durationInput = document.getElementById("durationSection");
             function toggleAddressFields(show) {
                 if (show) {
                     addressFields.style.display = "block";
@@ -384,13 +384,23 @@
                     toggleAddressFields(false);
                 }
             }
+            function toggleDuration() {
+  if (deliveryToSelect.value === "receiver") {
+    durationInput.style.display = "none";
+  } else {
+    durationInput.style.display = "block";
+  }
+}
+
 
             deliveryMethod.addEventListener("change", () => {
                 toggleAddressFields(deliveryMethod.value === "address_delivery");
+                  toggleDuration(); 
             });
 
             deliveryToSelect.addEventListener("change", () => {
                 toggleReceiverFields(deliveryToSelect.value === "receiver");
+                  toggleDuration();
             });
 
             lockerSelect?.addEventListener("change", async () => {
@@ -418,6 +428,7 @@
             window.addEventListener("DOMContentLoaded", () => {
                 toggleReceiverFields(deliveryToSelect.value === "receiver");
                 toggleAddressFields(deliveryMethod.value === "address_delivery");
+                  toggleDuration();   
             });
         </script>
 
