@@ -1,45 +1,13 @@
 const mongoose = require("mongoose");
 
 const DeliveryAgentSchema = new mongoose.Schema({
-  partner: {
-    type: String,          // "amazon", "flipkart", etc
-    required: true,
-    index: true,
-  },
+  partner: { type: String, required: true, index: true },
+  name: String,
+  phone: { type: String, required: true, index: true },
+  accessCode: { type: String, required: true, unique: true, index: true },
+  isActive: { type: Boolean, default: true },
+  lastUsedAt: Date,
+  totalDrops: { type: Number, default: 0 },
+}, { timestamps: true });
 
-  name: {
-    type: String,          // optional: agent name
-  },
-
-  phone: {
-    type: String,
-    required: true,
-    index: true,
-  },
-
-  accessCode: {
-    type: String,          // e.g. "A7K92Q" or "483921"
-    required: true,
-    unique: true,
-    index: true,
-  },
-
-  isActive: {
-    type: Boolean,
-    default: true,
-    index: true,
-  },
-
-  // Optional but powerful:
-  lastUsedAt: {
-    type: Date,
-  },
-
-  totalDrops: {
-    type: Number,
-    default: 0,
-  },
-
-}, {
-  timestamps: true, // adds createdAt, updatedAt
-});
+module.exports = mongoose.model("DeliveryAgent", DeliveryAgentSchema);
