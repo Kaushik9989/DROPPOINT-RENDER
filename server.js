@@ -2536,10 +2536,9 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       req.flash("error", "Incomplete data for delivery estimation");
       return res.redirect("/mobile/send/step2");
     }
-    let token = generateShiprocketToken();
-    console.log(token);
-    // const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU1MTU4NzE0LCJqdGkiOiJyTHVTRlFnSHF2T2RaOFhXIiwiaWF0IjoxNzU0Mjk0NzE0LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1NDI5NDcxNCwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.3x5fpkbgqJjHLhj2pimF_rSBnVk08OCP8cprFpHuVMk';
+  let token = await generateShiprocketToken();
 
+    
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -2557,7 +2556,7 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       { headers }
     );
 
-    let lockercost = getEstimatedCost(draft.size);
+    let lockercost = getEstimatedCost(draft.size,draft.duration);
     const courierOptions = response.data.data.available_courier_companies;
     const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
     if (!courierOptions || courierOptions.length === 0) {
@@ -2565,12 +2564,11 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       return res.redirect("/mobile/send/step2");
     }
 
-    res.render("mobile/parcel/estimate", {
-      courier: bestOption,
-      courierOptions,
-      lockercost,
-      totalCost: courierOptions.rate
-    });
+   res.render("mobile/parcel/estimate", {
+  courierOptions,
+  lockercost,
+  query: req.query   // ✅ REQUIRED FOR SORT BUTTONS
+});
   }
   catch (err) {
     console.error("❌ Error fetching estimate:", err);
@@ -4836,7 +4834,7 @@ async function generateShiprocketToken() {
     });
 
     const token = response.data.token;
-    console.log("✅ Shiprocket token:", token);
+   
     return token;
   } catch (err) {
     console.error("❌ Failed to generate Shiprocket token:", err.response?.data || err.message);
