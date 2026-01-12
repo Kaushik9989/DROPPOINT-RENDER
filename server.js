@@ -7030,8 +7030,7 @@ app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
 
     // Check if agent already exists for this partner
     const existing = await DeliveryAgent.findOne({
-      phone,
-      partner: req.partner.name.toLowerCase(),
+      phone
     });
 
     if (existing) {
