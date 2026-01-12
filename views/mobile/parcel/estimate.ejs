@@ -48,8 +48,8 @@
     const days = getDeliveryDays(courier);
 
     // Pricing rule:
-    // First 1 day free, then ₹10 per extra day
-    const freeDays = 0;
+    //  ₹10 per  day
+    const freeDays = 0; // we cant free days if we want to like first day free etc
     const perDay = 10;
 
     if (days <= freeDays) return 0;

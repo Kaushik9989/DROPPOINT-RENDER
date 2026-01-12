@@ -2522,12 +2522,14 @@ const parcel = await Parcel2.findOne({
 
 
 
-app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
-   const user = await User.findById(req.session.user._id).lean();
+app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.session.user._id).lean();
   if (!user) return res.redirect("/login");
-  try{
+
+  try {
     const draft = req.session.parcelDraft;
-    if(
+
+    if (
       !draft ||
       !draft.selectedLockerPincode ||
       !draft.recipientPincode ||
@@ -2536,58 +2538,91 @@ app.get("/mobile/send/estimate",isAuthenticated, async(req,res)=>{
       req.flash("error", "Incomplete data for delivery estimation");
       return res.redirect("/mobile/send/step2");
     }
-  let token = await generateShiprocketToken();
 
-    
+    let token = await generateShiprocketToken();
+
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     };
 
-    const params = new URLSearchParams({
-      pickup_postcode: draft.selectedLockerPincode,
-      delivery_postcode: draft.recipientPincode,
-      weight: 1,
-      cod: 0
-    });
+    let courierOptions = [];
+    let maxDays = 5; // ✅ Fallback ETA (VERY IMPORTANT)
 
-    const response = await axios.get(
-      `https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params.toString()}`,
-      { headers }
-    );
+    try {
+      const response = await axios.get(
+        "https://apiv2.shiprocket.in/v1/external/courier/serviceability",
+        {
+          headers,
+          params: {
+            pickup_postcode: String(draft.selectedLockerPincode),
+            delivery_postcode: String(draft.recipientPincode),
+            weight: 1,
+            cod: 0,
+          },
+          timeout: 10000,
+        }
+      );
 
-    
-    const courierOptions = response.data.data.available_courier_companies;
-    const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
-    if (!courierOptions || courierOptions.length === 0) {
-      req.flash("error", "No delivery service available for the selected address.");
-      return res.redirect("/mobile/send/step2");
+      console.log("🚚 Shiprocket raw response:", JSON.stringify(response.data, null, 2));
+
+      const apiData = response.data;
+
+      if (
+        apiData &&
+        apiData.status === 200 &&
+        apiData.data &&
+        Array.isArray(apiData.data.available_courier_companies)
+      ) {
+        courierOptions = apiData.data.available_courier_companies;
+
+        if (courierOptions.length > 0) {
+          maxDays = Math.max(
+            ...courierOptions.map(c => Number(c.estimated_delivery_days || 1))
+          );
+        }
+      } else {
+        console.error("❌ Shiprocket returned invalid structure:", apiData);
+      }
+    } catch (shipErr) {
+      console.error("❌ Shiprocket API failed, using fallback ETA:", shipErr.message);
     }
 
-res.render("mobile/parcel/estimate", {
-  courierOptions,
-   parcelSize: draft.size,
+    // 💰 Calculate locker cost from size + days
+    const lockercost = calculateLockerCostByDays(draft.size, maxDays);
 
-  query: req.query
-});
+    // Optional: sort couriers
+    if (courierOptions.length > 0) {
+      courierOptions.sort((a, b) => a.rate - b.rate);
+    }
 
-  }
-  catch (err) {
-    console.error("❌ Error fetching estimate:", err);
+    res.render("mobile/parcel/estimate", {
+      courierOptions,              // may be empty
+      lockercost,
+      maxDays,
+      parcelSize: draft.size,
+      shiprocketFailed: courierOptions.length === 0,
+      query: req.query,
+    });
+
+  } catch (err) {
+    console.error("❌ Error in estimate route:", err);
     req.flash("error", "Error fetching delivery estimate.");
     res.redirect("/mobile/send/step2");
   }
 });
 
 function calculateLockerCostByDays(size, days) {
+  const normalizedSize = String(size || "").toLowerCase().trim();
+
   const rates = {
     small: 50,
     medium: 100,
-    large: 200
+    large: 200,
   };
 
-  const perDay = rates[size] || 100; // default medium
-  return perDay * Math.max(1, days);
+  const perDay = rates[normalizedSize] || 100; // default medium
+  return perDay * Math.max(1, Number(days) || 1);
 }
 
 
@@ -6854,6 +6889,41 @@ app.get("/admin/logout", (req, res) => {
 });
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ---------------------------------------------------- TECHNICIAN ROUTES ------------------------------------------------------
 
 app.get("/technician/login", (req, res) => {
@@ -6876,6 +6946,160 @@ app.get("/technician/dashboard", async (req, res) => {
 });
 
 // -------------------------------------------BACKEND MISCELLANEOUS ROUTES-----------------------------------------------------------
+
+
+
+
+
+
+
+
+
+// API FOR 3P SERVICES
+
+
+const Partner = require("./models/partnerSchema.js");
+
+function generateApiKey(partnerName) {
+  const random = crypto.randomBytes(24).toString("hex");
+  return `dp_live_${partnerName.toLowerCase()}_${random}`;
+}
+
+app.post("/admin/create-partner", async (req, res) => {
+  const { name } = req.body;
+
+  const apiKey = generateApiKey(name);
+
+  const partner = await Partner.create({
+    name,
+    apiKey
+  });
+
+  res.json({
+    success: true,
+    partner: {
+      name: partner.name,
+      apiKey: partner.apiKey
+    }
+  });
+});
+
+async function partnerAuth(req, res, next) {
+  try {
+    const auth = req.headers.authorization;
+
+    if (!auth || !auth.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, message: "Missing API key" });
+    }
+
+    const apiKey = auth.split(" ")[1];
+
+    const partner = await Partner.findOne({ apiKey, isActive: true });
+
+    if (!partner) {
+      return res.status(401).json({ success: false, message: "Invalid API key" });
+    }
+
+    req.partner = partner; // attach partner info to request
+    next();
+
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Auth error" });
+  }
+}
+
+
+const DeliveryAgent = require("./models/deliveryAgent");
+
+
+function generateAccessCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and phone are required",
+      });
+    }
+
+    // Check if agent already exists for this partner
+    const existing = await DeliveryAgent.findOne({
+      phone,
+      partner: req.partner.name.toLowerCase(),
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery agent already exists",
+      });
+    }
+
+    // Generate unique access code
+    let accessCode;
+    let exists = true;
+
+    while (exists) {
+      accessCode = generateAccessCode();
+      exists = await DeliveryAgent.findOne({ accessCode });
+    }
+
+    // Create agent
+    const agent = await DeliveryAgent.create({
+      partner: req.partner.name.toLowerCase(), // "amazon"
+      name,
+      phone,
+      accessCode,
+    });
+
+//     // 📲 Send SMS / WhatsApp
+//     await sendWhatsApp(phone, 
+// `📦 DropPoint Access Created
+
+// Hello ${name},
+// Your permanent DropPoint locker access code is:
+
+// 🔐 ${accessCode}
+
+// Use this code at any DropPoint locker to drop parcels.
+
+// — Team DropPoint`
+//     );
+
+    res.json({
+      success: true,
+      message: `Delivery agent created and access code sent. ACCESS CODE : ${accessCode}`,
+      agentId: agent._id,
+    });
+
+  } catch (err) {
+    console.error("Create agent error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
+
+
+
+
+
+
+
+
+
 
 
 // -------------------------------------------Error-handling middleware------------------------------------------------------
