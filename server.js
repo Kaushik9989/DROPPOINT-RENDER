@@ -2457,7 +2457,7 @@ app.get("/mobile/parcel/:id/receiver-pay", isAuthenticated, async (req, res) => 
         sms: true,
         email: false
       },
-      callback_url: `${process.env.BASE_URL}/mobile/payment/success-link?parcelId=${parcel._id}`,
+      callback_url: `${process.env.BASE_URL}mobile/payment/success-link?parcelId=${parcel._id}`,
       callback_method: "get"
     });
 
@@ -7058,18 +7058,18 @@ app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
     });
 
 //     // 📲 Send SMS / WhatsApp
-//     await sendWhatsApp(phone, 
-// `📦 DropPoint Access Created
+ await sendWhatsApp(phone, 
+`📦 DropPoint Access Created
 
-// Hello ${name},
-// Your permanent DropPoint locker access code is:
+Hello ${name},
+Your DropPoint locker access code is:
 
-// 🔐 ${accessCode}
+🔐 ${accessCode}
 
-// Use this code at any DropPoint locker to drop parcels.
+Use this code at any DropPoint locker to drop parcels.
 
-// — Team DropPoint`
-//     );
+— Team DropPoint`
+    );
 
     res.json({
       success: true,
