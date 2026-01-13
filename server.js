@@ -2177,7 +2177,7 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
     recipientPincode,
     selectedLocker,
     saveContact,
-    duration
+    duration,
     
   } = req.body;
   console.log(duration);
@@ -2249,6 +2249,8 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
       req.session.parcelDraft.recipientAddress = recipientAddress;
       req.session.parcelDraft.recipientPincode = recipientPincode;
       req.session.parcelDraft.selectedLocker = selectedLocker;
+      req.session.parcelDraft.lockerLat = locker.location.lat;
+      req.session.parcelDraft.lockerLng = locker.location.lng;
       req.session.parcelDraft.selectedLockerPincode =lockerPincode;
       req.session.parcelDraft.status = "awaiting_drop";
       if (receiverDeliveryMethod === "address_delivery") {
@@ -2390,6 +2392,8 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       selectedLockerPincode: draft.selectedLockerPincode,
       accessCode,
       qrImage,
+      lockerLat : draft.lockerLat,
+      lockerLng : draft.lockerLng,
       store_self,
       duration : draft.duration,
       lockerId: draft.lockerId || null,
