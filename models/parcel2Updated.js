@@ -20,7 +20,7 @@ const ParcelSchema = new mongoose.Schema({
   lockerLat: { type: String },
   lockerLng: { type: String },
 
-  accessCode: { type: String, unique: true, required: true },
+  accessCode: { type: String, unique: true, required: true,   index: true },
   qrImage: String,
   unlockUrl: String,
 
@@ -119,7 +119,7 @@ closureReason: {
     "reassigned_no_charge",
     "expired_no_liability"
   ]
-}
+},
 
 
 });

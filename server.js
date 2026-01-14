@@ -8,8 +8,8 @@ const fs = require("fs");
 const LRU = require("lru-cache");
 const Razorpay = require("razorpay");
 const Version = require("./models/Version.js");
-const methodOverride = require('method-override');
-const cookieParser = require('cookie-parser');
+const methodOverride = require("method-override");
+const cookieParser = require("cookie-parser");
 const axios = require("axios");
 const uaParser = require("ua-parser-js");
 const session = require("express-session");
@@ -18,7 +18,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const bodyParser = require("body-parser");
 const cron = require("node-cron");
-const {sendSMS} = require("./smartping.js");
+const { sendSMS } = require("./smartping.js");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Extension = require("./models/extension.js");
@@ -36,7 +36,7 @@ const Analytics = require("./models/Analytics.js");
 const SessionIntent = require("./models/sessionIntent.js");
 const StepDuration = require("./models/stepDuration.js");
 const incomingParcel = require("./models/incomingParcel.js");
-const getGAStats = require('./utils/analytics');
+const getGAStats = require("./utils/analytics");
 const app = express();
 const PORT = 8080;
 const ejsMate = require("ejs-mate");
@@ -50,10 +50,16 @@ const locker = require("./models/locker.js");
 const compression = require("compression");
 app.use(compression());
 require("dotenv").config();
-const { generateOtp, storeOtp, canResend, updateResendTimestamp, verifyOtp } = require("./otpStore");
+const {
+  generateOtp,
+  storeOtp,
+  canResend,
+  updateResendTimestamp,
+  verifyOtp,
+} = require("./otpStore");
 const server = http.createServer(app);
 const io = new Server(server);
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 app.use(cookieParser(process.env.COOKIE_SECRET)); // <- add a strong secret
 app.engine("ejs", ejsMate); // Set ejs-mate as the EJS engine
 app.set("view engine", "ejs");
@@ -63,10 +69,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(methodOverride('_method'));
+app.use(methodOverride("_method"));
 app.use(express.static("public"));
-const MONGO_URI =
-  process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI;
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
@@ -81,37 +86,34 @@ app.use(
       ttl: 60 * 60 * 24 * 7, // 7 days in seconds
     }),
     cookie: {
-    secure: false,     // Must be false if not using HTTPS locally
-    httpOnly: true,
-    sameSite: "lax",       // Prevents cross-site issues
-   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      
+      secure: false, // Must be false if not using HTTPS locally
+      httpOnly: true,
+      sameSite: "lax", // Prevents cross-site issues
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     },
-      rolling: true, 
+    rolling: true,
   })
 );
-const LOGIN_COOKIE = 'login_phone';
+const LOGIN_COOKIE = "login_phone";
 function setLoginPhoneCookie(res, phone) {
   res.cookie(LOGIN_COOKIE, phone, {
     signed: true,
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production', // only over HTTPS in prod
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production", // only over HTTPS in prod
     maxAge: 5 * 60 * 1000, // 5 minutes
-    path: '/',            // available across your app
+    path: "/", // available across your app
   });
 }
 
 function clearLoginPhoneCookie(res) {
   res.clearCookie(LOGIN_COOKIE, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
   });
 }
-
-
 
 app.use(flash());
 
@@ -122,8 +124,6 @@ app.use((req, res, next) => {
   };
   next();
 });
-
-
 
 app.use((req, res, next) => {
   if (req.session.user) {
@@ -140,8 +140,7 @@ app.use(passport.session());
 passport.use(
   new GoogleStrategy(
     {
-      clientID:
-        process.env.GOOGLE_CLIENT_ID, // from Google Cloud
+      clientID: process.env.GOOGLE_CLIENT_ID, // from Google Cloud
       clientSecret: process.env.GOOGLE_CLIENT_SECRET, // from Google Cloud
       callbackURL: process.env.GOOGLE_CALLBACK_URL,
       // callbackURL: "https://virtuallocker.onrender.com/auth/google/callback",
@@ -162,9 +161,6 @@ passport.use(
   )
 );
 
-
-
-
 passport.serializeUser((user, done) => {
   done(null, user._id); // Safer and clearer
 });
@@ -182,12 +178,6 @@ passport.deserializeUser(async (id, done) => {
     return done(err, null); // ⛔ Passport will treat this as a hard error
   }
 });
-
-
-
-
-
-
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "your_key_id",
@@ -232,7 +222,6 @@ passport.use(
   })
 );
 
-
 app.get("/", (req, res) => {
   res.redirect("/mobileDashboard");
 });
@@ -263,7 +252,7 @@ app.post("/analytics/step-duration", express.json(), async (req, res) => {
     durationMs,
     path,
     timestamp: new Date(timestamp),
-    sessionId: req.sessionID
+    sessionId: req.sessionID,
   });
 
   res.sendStatus(200);
@@ -275,7 +264,7 @@ app.get("/users", async (req, res) => {
 
     res.render("users", {
       users,
-      activePage: "users"
+      activePage: "users",
     });
   } catch (err) {
     console.error("Failed to load users:", err);
@@ -283,8 +272,6 @@ app.get("/users", async (req, res) => {
   }
 });
 app.post("/admin/users/:id/delete", async (req, res) => {
-  
-
   try {
     await User.findByIdAndDelete(req.params.id);
     res.redirect("/users");
@@ -294,20 +281,18 @@ app.post("/admin/users/:id/delete", async (req, res) => {
   }
 });
 
-
-app.get('/analytics', async (req, res) => {
+app.get("/analytics", async (req, res) => {
   try {
     const data = await getGAStats();
-    res.render('analytics', { data });
+    res.render("analytics", { data });
   } catch (error) {
-    console.error('Analytics Error:', error);
-    res.status(500).send('Failed to load analytics.');
+    console.error("Analytics Error:", error);
+    res.status(500).send("Failed to load analytics.");
   }
 });
 
-app.post('/track', async (req, res) => {
+app.post("/track", async (req, res) => {
   try {
-   
     await Analytics.create(req.body); // this will work if step 1 + 2 are right
     res.status(200).send("Tracked");
   } catch (err) {
@@ -316,7 +301,7 @@ app.post('/track', async (req, res) => {
   }
 });
 
-app.get('/analytics/private', async (req, res) => {
+app.get("/analytics/private", async (req, res) => {
   const data = await Analytics.find({}).lean();
 
   // Group by path
@@ -324,31 +309,30 @@ app.get('/analytics/private', async (req, res) => {
   const tagCounts = {};
   const idCounts = {};
 
-  data.forEach(item => {
+  data.forEach((item) => {
     pathCounts[item.path] = (pathCounts[item.path] || 0) + 1;
     tagCounts[item.tag] = (tagCounts[item.tag] || 0) + 1;
     idCounts[item.id] = (idCounts[item.id] || 0) + 1;
   });
 
-  res.render('adminAnal', {
+  res.render("adminAnal", {
     paths: Object.keys(pathCounts),
     pathData: Object.values(pathCounts),
     tags: Object.keys(tagCounts),
     tagData: Object.values(tagCounts),
     ids: Object.keys(idCounts),
     idData: Object.values(idCounts),
-    raw: data
+    raw: data,
   });
 });
 // routes/api.js or directly in app.js
 app.get("/api/track-send-click", async (req, res) => {
   try {
-    
     await FunnelEvent.create({
       sessionId: req.sessionID,
       userId: req.user?._id || null,
       step: "send_parcel_clicked",
-      timestamp: new Date()
+      timestamp: new Date(),
     });
     res.sendStatus(204);
   } catch (err) {
@@ -356,7 +340,6 @@ app.get("/api/track-send-click", async (req, res) => {
     res.sendStatus(500);
   }
 });
-
 
 app.post("/analytics/step-duration", async (req, res) => {
   const { step, durationMs, path, timestamp } = req.body;
@@ -366,7 +349,7 @@ app.post("/analytics/step-duration", async (req, res) => {
     durationMs,
     path,
     timestamp: new Date(timestamp),
-    sessionId: req.sessionID
+    sessionId: req.sessionID,
   });
 
   res.sendStatus(200);
@@ -387,7 +370,7 @@ app.get("/analytics/step-durations", async (req, res) => {
 
   const stepData = {};
 
-  durations.forEach(entry => {
+  durations.forEach((entry) => {
     let step = entry.step;
     if (!step) step = mapPathToStep(entry.path);
 
@@ -399,27 +382,30 @@ app.get("/analytics/step-durations", async (req, res) => {
 
   const stepAverages = Object.entries(stepData).map(([step, durations]) => ({
     step,
-    avg: Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+    avg: Math.round(durations.reduce((a, b) => a + b, 0) / durations.length),
   }));
 
-  const orderedSteps = ["send_step_1", "send_step_2", "send_step_3", "payment", "completed"];
+  const orderedSteps = [
+    "send_step_1",
+    "send_step_2",
+    "send_step_3",
+    "payment",
+    "completed",
+  ];
 
-  const finalData = orderedSteps.map(name => {
-    const match = stepAverages.find(e => e.step === name);
+  const finalData = orderedSteps.map((name) => {
+    const match = stepAverages.find((e) => e.step === name);
     return { step: name, avg: match ? match.avg : 0 };
   });
 
   res.render("step-durations", { durations: finalData });
 });
 
-
 app.get("/sendParcel", isAuthenticated, async (req, res) => {
-
-
   // Check cache firs
   try {
     const user = await User.findById(req.session.user._id);
-    
+
     const bookedParcels = await Parcel2.find({
       senderId: req.session.user._id,
     }).sort({ createdAt: -1 });
@@ -438,7 +424,6 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
         }
 
         // Store in cache
-       
 
         res.send(html);
       }
@@ -447,7 +432,6 @@ app.get("/sendParcel", isAuthenticated, async (req, res) => {
     console.error("Error loading sendParcel:", err);
     res.status(500).send("Internal Server Error");
   }
-  
 }); // routes/api.js
 
 // GET /api/lockers - Fetch all lockers and compartments
@@ -487,7 +471,6 @@ app.get("/api/locations", isAuthenticated, async (req, res) => {
 });
 
 app.get("/locations", isAuthenticated, async (req, res) => {
-  
   // const cachedHtml = locationsCache.get(cacheKey);
   // if (cachedHtml) {
   //   console.log("✅ Served /locations from cache");
@@ -542,17 +525,17 @@ app.get("/receive", isAuthenticated, async (req, res) => {
     const userPhone = req.session.user.phone;
 
     const incomingParcels = await Parcel2.find({
-      receiverPhone: userPhone
+      receiverPhone: userPhone,
     }).sort({ createdAt: -1 });
 
     const filteredParcels = incomingParcels.filter(
-      p => p.status === "awaiting_pick"
+      (p) => p.status === "awaiting_pick"
     );
 
     res.render("recieve", {
       parcels: filteredParcels,
       activePage: "receive",
-      parcelCount: filteredParcels.length
+      parcelCount: filteredParcels.length,
     });
   } catch (error) {
     console.error("Error fetching parcels:", error);
@@ -560,14 +543,11 @@ app.get("/receive", isAuthenticated, async (req, res) => {
   }
 });
 
-
 /// accountCache.delete("account:" + req.session.user._id);
 app.get("/account", isAuthenticated, async (req, res) => {
   const cacheKey = "account:" + req.session.user._id;
 
   // Check cache
-  
- 
 
   try {
     const user = await User.findById(req.session.user._id).lean();
@@ -577,8 +557,6 @@ app.get("/account", isAuthenticated, async (req, res) => {
         console.error("Error rendering /account:", err);
         return res.status(500).send("Internal Server Error");
       }
-
-      
 
       res.send(html);
     });
@@ -611,15 +589,17 @@ app.get("/incoming/:id/qr", async (req, res) => {
   const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
   let qrImage;
-    if (parcelLocker != "") {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, parcelLocker }));
-    } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
-    }
+  if (parcelLocker != "") {
+    qrImage = await QRCode.toDataURL(
+      JSON.stringify({ accessCode, parcelLocker })
+    );
+  } else {
+    qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+  }
   if (!parcel) return res.status(404).send("Parcel not found");
   if (!parcel.qrImage)
     return res.status(400).send("No QR code saved for this parcel");
-  res.render("qrPage", { parcel,qrImage });
+  res.render("qrPage", { parcel, qrImage });
 });
 
 //-------------------------------------USER DASHBOARD ------------------------------------------
@@ -633,10 +613,10 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
   }
 
   try {
-     if (req.session.inProgressParcelId) {
-    await Parcel2.findByIdAndDelete(req.session.inProgressParcelId);
-    delete req.session.inProgressParcelId;
-  }
+    if (req.session.inProgressParcelId) {
+      await Parcel2.findByIdAndDelete(req.session.inProgressParcelId);
+      delete req.session.inProgressParcelId;
+    }
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
 
@@ -651,31 +631,24 @@ app.get("/dashboard", isAuthenticated, async (req, res) => {
     const userPhone = user.phone;
     const userName = user.username;
     const incomingParcels = await Parcel2.find({
-      receiverPhone: userPhone
+      receiverPhone: userPhone,
     }).sort({ createdAt: -1 });
 
     const filteredParcels = incomingParcels.filter(
-      p => p.status === "awaiting_pick"
+      (p) => p.status === "awaiting_pick"
     );
-     await trackFunnelStep(req, "dashboard_loaded");
-    res.render(
-      "newDashboard",
-      {
-        user,
-        activePage: "home",
-        userName,
-        parcelCount : filteredParcels.length
-      },
-     
-    );
+    await trackFunnelStep(req, "dashboard_loaded");
+    res.render("newDashboard", {
+      user,
+      activePage: "home",
+      userName,
+      parcelCount: filteredParcels.length,
+    });
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
   }
 });
-
-
-
 
 app.post("/log-version", async (req, res) => {
   const { version, pushedBy = "auto" } = req.body;
@@ -702,7 +675,7 @@ app.post("/log-version", async (req, res) => {
       zipPath,
       pushedAt: new Date(),
       isCurrent: true,
-      deployedBy: pushedBy
+      deployedBy: pushedBy,
     });
 
     res.status(201).json({ message: "Version logged", data: entry });
@@ -727,8 +700,8 @@ const FunnelEvent = require("./models/funnelEvent.js");
 
 async function trackFunnelStep(req, step, metadata = {}) {
   try {
-    const ua = uaParser(req.headers['user-agent']);
-    const device = ua.device.type || 'desktop';
+    const ua = uaParser(req.headers["user-agent"]);
+    const device = ua.device.type || "desktop";
 
     await FunnelEvent.create({
       sessionId: req.sessionID,
@@ -737,8 +710,8 @@ async function trackFunnelStep(req, step, metadata = {}) {
       step,
       metadata: {
         ...metadata,
-        device
-      }
+        device,
+      },
     });
   } catch (err) {
     console.error("Funnel tracking error:", err);
@@ -748,17 +721,19 @@ async function getAverageDurations() {
   const sessions = await FunnelEvent.aggregate([
     {
       $match: {
-        step: { $in: [
-          "visit_landing_page",
-          "login_phone",
-          "otp_entered",
-          "dashboard_loaded",
-          "send_parcel_clicked",
-          "send_parcel_submitted",
-          "parcel_created",
-          "parcel_picked"
-        ]}
-      }
+        step: {
+          $in: [
+            "visit_landing_page",
+            "login_phone",
+            "otp_entered",
+            "dashboard_loaded",
+            "send_parcel_clicked",
+            "send_parcel_submitted",
+            "parcel_created",
+            "parcel_picked",
+          ],
+        },
+      },
     },
     {
       $group: {
@@ -766,22 +741,22 @@ async function getAverageDurations() {
         steps: {
           $push: {
             step: "$step",
-            timestamp: "$timestamp"
-          }
-        }
-      }
-    }
+            timestamp: "$timestamp",
+          },
+        },
+      },
+    },
   ]);
 
   const durations = {
     loginToDashboard: [],
     sendStartToSubmit: [],
-    parcelCreateToPickup: []
+    parcelCreateToPickup: [],
   };
 
   for (const session of sessions) {
     const stepMap = {};
-    session.steps.forEach(e => stepMap[e.step] = new Date(e.timestamp));
+    session.steps.forEach((e) => (stepMap[e.step] = new Date(e.timestamp)));
 
     // Login → Dashboard
     if (stepMap["login_phone"] && stepMap["dashboard_loaded"]) {
@@ -791,128 +766,151 @@ async function getAverageDurations() {
 
     // Send Start → Submit
     if (stepMap["send_parcel_clicked"] && stepMap["send_parcel_submitted"]) {
-      const delta = stepMap["send_parcel_submitted"] - stepMap["send_parcel_clicked"];
-      if (delta >= 0 && delta <= 600000) durations.sendStartToSubmit.push(delta);
+      const delta =
+        stepMap["send_parcel_submitted"] - stepMap["send_parcel_clicked"];
+      if (delta >= 0 && delta <= 600000)
+        durations.sendStartToSubmit.push(delta);
     }
 
     // Parcel Created → Pickup
     if (stepMap["parcel_created"] && stepMap["parcel_picked"]) {
       const delta = stepMap["parcel_picked"] - stepMap["parcel_created"];
-      if (delta >= 0 && delta <= 24 * 60 * 60 * 1000) // < 24h
+      if (delta >= 0 && delta <= 24 * 60 * 60 * 1000)
+        // < 24h
         durations.parcelCreateToPickup.push(delta);
     }
   }
 
   // Helper to compute avg
-  const avg = arr =>
-    arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length / 1000).toFixed(2) : "0.00";
+  const avg = (arr) =>
+    arr.length
+      ? (arr.reduce((a, b) => a + b, 0) / arr.length / 1000).toFixed(2)
+      : "0.00";
 
   return {
     avgLoginToDashboard: avg(durations.loginToDashboard),
     avgSendFlow: avg(durations.sendStartToSubmit),
-    avgPickupTime: avg(durations.parcelCreateToPickup)
+    avgPickupTime: avg(durations.parcelCreateToPickup),
   };
 }
-
 
 async function getStepDurations(sessionId) {
   const events = await FunnelEvent.find({ sessionId }).sort("timestamp");
   const steps = {};
-  events.forEach(e => steps[e.step] = e.timestamp);
+  events.forEach((e) => (steps[e.step] = e.timestamp));
 
   const durations = {
-    loginDelay: steps["login_phone"] && steps["visit_landing_page"]
-      ? (steps["login_phone"] - steps["visit_landing_page"]) / 1000 : null,
-    otpDelay: steps["otp_entered"] && steps["login_phone"]
-      ? (steps["otp_entered"] - steps["login_phone"]) / 1000 : null,
-    dashboardDelay: steps["dashboard_loaded"] && steps["otp_entered"]
-      ? (steps["dashboard_loaded"] - steps["otp_entered"]) / 1000 : null,
+    loginDelay:
+      steps["login_phone"] && steps["visit_landing_page"]
+        ? (steps["login_phone"] - steps["visit_landing_page"]) / 1000
+        : null,
+    otpDelay:
+      steps["otp_entered"] && steps["login_phone"]
+        ? (steps["otp_entered"] - steps["login_phone"]) / 1000
+        : null,
+    dashboardDelay:
+      steps["dashboard_loaded"] && steps["otp_entered"]
+        ? (steps["dashboard_loaded"] - steps["otp_entered"]) / 1000
+        : null,
   };
 
   return durations;
 }
 
 app.get("/admin/funnel", async (req, res) => {
- 
-        const timingData = await getAverageDurations();
+  const timingData = await getAverageDurations();
 
+  const loginPhoneCount = await FunnelEvent.distinct("sessionId", {
+    step: "login_phone",
+  }).then((d) => d.length);
+  const loginOAuthCount = await FunnelEvent.distinct("sessionId", {
+    step: "login_oauth",
+  }).then((d) => d.length);
 
-        const loginPhoneCount = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
-        const loginOAuthCount = await FunnelEvent.distinct("sessionId", { step: "login_oauth" }).then(d => d.length);
+  const totalVisits = await FunnelEvent.distinct("sessionId", {
+    step: "visit_landing_page",
+  }).then((d) => d.length);
+  const loginPhone = await FunnelEvent.distinct("sessionId", {
+    step: "login_phone",
+  }).then((d) => d.length);
+  const otpEntered = await FunnelEvent.distinct("sessionId", {
+    step: "otp_entered",
+  }).then((d) => d.length);
+  const dashboard = await FunnelEvent.distinct("sessionId", {
+    step: "dashboard_loaded",
+  }).then((d) => d.length);
 
+  const drop1 = totalVisits - loginPhone;
+  const drop2 = loginPhone - otpEntered;
+  const drop3 = Math.max(otpEntered - dashboard, 0);
 
-        const totalVisits   = await FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }).then(d => d.length);
-        const loginPhone    = await FunnelEvent.distinct("sessionId", { step: "login_phone" }).then(d => d.length);
-        const otpEntered    = await FunnelEvent.distinct("sessionId", { step: "otp_entered" }).then(d => d.length);
-        const dashboard     = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" }).then(d => d.length);
+  const successRate =
+    totalVisits > 0 ? ((dashboard / totalVisits) * 100).toFixed(2) : "0.00";
 
+  const successRateNum = Math.min(parseFloat(successRate), 100);
+  const abandonmentRate = (100 - successRateNum).toFixed(2);
+  // Count distinct sessions per step
+  const [visitSessions, loginSessions, otpSessions, dashboardSessions] =
+    await Promise.all([
+      FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }),
+      FunnelEvent.distinct("sessionId", {
+        step: { $in: ["login_phone", "login_oauth"] },
+      }),
+      FunnelEvent.distinct("sessionId", { step: "otp_entered" }),
+      FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" }),
+    ]);
 
+  // Count of users at each step
+  const loginCount = loginSessions.length;
+  const otpCount = otpSessions.length;
+  const dashboardCount = dashboardSessions.length;
 
+  // Drop-off at each step
+  const dropAfterVisit = totalVisits - loginCount;
+  const dropAfterLogin = loginCount - otpCount;
+  const dropAfterOTP = Math.max(otpCount - dashboardCount, 0);
 
-        const drop1 = totalVisits - loginPhone;
-        const drop2 = loginPhone - otpEntered;
-        const drop3 = Math.max(otpEntered - dashboard, 0);
+  const dashboardSession = await FunnelEvent.distinct("sessionId", {
+    step: "dashboard_loaded",
+  });
+  const sendParcelSessions = await FunnelEvent.distinct("sessionId", {
+    step: "send_parcel_clicked",
+  });
 
-        const successRate = totalVisits > 0 ? ((dashboard / totalVisits) * 100).toFixed(2) : "0.00";
-
-
-        const successRateNum = Math.min(parseFloat(successRate), 100);
-        const abandonmentRate = (100 - successRateNum).toFixed(2);
-        // Count distinct sessions per step
-        const [visitSessions, loginSessions, otpSessions, dashboardSessions] = await Promise.all([
-        FunnelEvent.distinct("sessionId", { step: "visit_landing_page" }),
-        FunnelEvent.distinct("sessionId", { step: { $in: ["login_phone", "login_oauth"] } }),
-        FunnelEvent.distinct("sessionId", { step: "otp_entered" }),
-        FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" })
-        ]);
-
-        // Count of users at each step
-        const loginCount = loginSessions.length;
-        const otpCount = otpSessions.length;
-        const dashboardCount = dashboardSessions.length;
-
-        // Drop-off at each step
-        const dropAfterVisit = totalVisits - loginCount;
-        const dropAfterLogin = loginCount - otpCount;
-        const dropAfterOTP = Math.max(otpCount - dashboardCount, 0);
-
-        const dashboardSession = await FunnelEvent.distinct("sessionId", { step: "dashboard_loaded" });
-        const sendParcelSessions = await FunnelEvent.distinct("sessionId", { step: "send_parcel_clicked" });
-
-        const sentCount = sendParcelSessions.length;
-        const dashboardOnly = dashboardSessions.filter(id => !sendParcelSessions.includes(id));
-        const notSentCount = dashboardOnly.length;
-        // Stuck breakdown
-        const stuckStats = {
-        at_visit_page: dropAfterVisit,
-        at_login: dropAfterLogin,
-        at_otp: dropAfterOTP
-        };
-        res.render("funnelDashboard", {
-        totalVisits,
-        loginCount,
-        otpCount,
-        dashboardCount,
-        successRate,
-        abandonmentRate,
-        stuckStats,
-        timingData,
-        loginPhone,
-        otpEntered,
-        dashboard,
-        drop1,
-        drop2,
-        drop3,
-        successRate,
-        abandonmentRate,
-        loginPhoneCount,
-        sentCount,
-        notSentCount,
-        loginOAuthCount
-        });
+  const sentCount = sendParcelSessions.length;
+  const dashboardOnly = dashboardSessions.filter(
+    (id) => !sendParcelSessions.includes(id)
+  );
+  const notSentCount = dashboardOnly.length;
+  // Stuck breakdown
+  const stuckStats = {
+    at_visit_page: dropAfterVisit,
+    at_login: dropAfterLogin,
+    at_otp: dropAfterOTP,
+  };
+  res.render("funnelDashboard", {
+    totalVisits,
+    loginCount,
+    otpCount,
+    dashboardCount,
+    successRate,
+    abandonmentRate,
+    stuckStats,
+    timingData,
+    loginPhone,
+    otpEntered,
+    dashboard,
+    drop1,
+    drop2,
+    drop3,
+    successRate,
+    abandonmentRate,
+    loginPhoneCount,
+    sentCount,
+    notSentCount,
+    loginOAuthCount,
+  });
 });
-
-
 
 app.get("/api/lockers", isAuthenticated, async (req, res) => {
   try {
@@ -932,7 +930,7 @@ app.get("/api/lockers", isAuthenticated, async (req, res) => {
 // ------------------------------------------GOOGLE LOGIN ROUTES---------------------------------------------------
 
 app.get("/link-phone", (req, res) => {
-  res.render("link-phone", { error: null});
+  res.render("link-phone", { error: null });
 });
 app.post("/link-phone", async (req, res) => {
   let rawPhone = req.body.phone || "";
@@ -961,9 +959,9 @@ app.post("/link-phone", async (req, res) => {
   // Check if already linked
   const existing = await User.findOne({ phone: phone });
   if (existing && String(existing._id) !== String(req.session.user._id)) {
-     req.session.mergePhone = canonicalPhone;
+    req.session.mergePhone = canonicalPhone;
     req.session.mergeTargetUserId = existing._id;
-     return res.render("merge-confirm", {
+    return res.render("merge-confirm", {
       phone: canonicalPhone,
       existingUser: existing,
     });
@@ -986,8 +984,6 @@ app.post("/link-phone", async (req, res) => {
   }
 });
 
-
-
 app.post("/merge-request", async (req, res) => {
   const phone = req.session.mergePhone;
   if (!phone) return res.redirect("/link-phone");
@@ -1006,8 +1002,6 @@ app.post("/merge-request", async (req, res) => {
     });
   }
 });
-
-
 
 app.post("/verify-merge-phone", async (req, res) => {
   const code = req.body.code;
@@ -1049,9 +1043,6 @@ app.post("/verify-merge-phone", async (req, res) => {
   }
 });
 
-
-
-
 async function mergeAccounts(fromUserId, toUserId) {
   const fromUser = await User.findById(fromUserId);
   const toUser = await User.findById(toUserId);
@@ -1059,9 +1050,9 @@ async function mergeAccounts(fromUserId, toUserId) {
   if (!fromUser || !toUser) {
     throw new Error("One of the users was not found during merge.");
   }
-  
+
   // Transfer the phone number from the existing account to the current one
-   fromUser.phone =toUser.phone;
+  fromUser.phone = toUser.phone;
   console.log(fromUser.phone);
   // Save the updated current user
   await toUser.save();
@@ -1069,11 +1060,6 @@ async function mergeAccounts(fromUserId, toUserId) {
   // Delete the old (from) user
   await User.deleteOne({ _id: fromUserId });
 }
-
-
-
-
-
 
 // app.get("/verify-link-phone", (req, res) => {
 //   res.render("verify-link-phone", { error: null });
@@ -1120,8 +1106,8 @@ async function mergeAccounts(fromUserId, toUserId) {
 
 // -------------------------------------------LOGIN ROUTES---------------------------------------------------
 
-app.get("/login", async(req, res) => {
-   await trackFunnelStep(req, "visit_landing_page");
+app.get("/login", async (req, res) => {
+  await trackFunnelStep(req, "visit_landing_page");
   const error = req.query.error || null;
   res.render("login", { error });
 });
@@ -1212,7 +1198,7 @@ app.get("/api/incoming-parcels", isAuthenticated, async (req, res) => {
   try {
     // Step 1: Find parcels
     const parcelsRaw = await Parcel2.find({
-      senderId: req.user._id
+      senderId: req.user._id,
     })
       .sort({ createdAt: -1 })
       .select(
@@ -1326,10 +1312,8 @@ app.post("/verify", async (req, res) => {
   }
 });
 
-
-
 // app.post("/otpLogin", async (req, res) => {
-  
+
 //   // await trackFunnelStep(req, "login_phone", { phone: req.body.phone });
 //   const { phone } = req.body;
 
@@ -1356,8 +1340,6 @@ app.post("/verify", async (req, res) => {
 //   }
 // });
 
-
-
 // app.post("/otpLogin", async (req, res) => {
 //   const { phone } = req.body;
 //   req.session.phone = phone;
@@ -1382,13 +1364,8 @@ app.post("/verify", async (req, res) => {
 //   }
 // });
 
-
-
-
 // app.post("/verify-login", async (req, res) => {
 //   await trackFunnelStep(req, "otp_entered");
-  
-
 
 //   const { otp } = req.body;
 //   const phone = req.session.phone;
@@ -1409,9 +1386,8 @@ app.post("/verify", async (req, res) => {
 
 //     let user = await User.findOne({ phone });
 // if (!user) {
-//   return res.redirect("/set-username", 
-    
-   
+//   return res.redirect("/set-username",
+
 //   );
 // }
 
@@ -1419,8 +1395,6 @@ app.post("/verify", async (req, res) => {
 //   user.lastLogin = new Date();
 //   await user.save();
 // }
-
- 
 
 //     // ✅ Existing user
 //     req.session.user = {
@@ -1474,7 +1448,6 @@ app.post("/verify", async (req, res) => {
 //       wallet: user.wallet || { credits: 0 },
 //     };
 
-    
 //     res.redirect("/mobileDashboard");
 //   } catch (err) {
 //     res.render("set-username", {
@@ -1509,17 +1482,14 @@ app.post("/verify", async (req, res) => {
 
 // ======================================================= MOBILE LIKE DESIGB==========================================================
 
-
-app.get('/auth/google', (req, res, next) => {
-  const isLinking = req.query.link === 'true';
-  const authenticator = passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    state: isLinking ? 'link' : 'login',
+app.get("/auth/google", (req, res, next) => {
+  const isLinking = req.query.link === "true";
+  const authenticator = passport.authenticate("google", {
+    scope: ["profile", "email"],
+    state: isLinking ? "link" : "login",
   });
   authenticator(req, res, next);
 });
-
-
 
 //// GOOGLE LOGIN UPDATED NEW ROUTES
 
@@ -1566,7 +1536,9 @@ app.get(
       await user.save();
 
       // Optional analytics step
-      await trackFunnelStep(req, "login_oauth", { phone: req.user.phone || null });
+      await trackFunnelStep(req, "login_oauth", {
+        phone: req.user.phone || null,
+      });
 
       // Redirect to saved URL or default
       const redirectTo = req.session.redirectTo || "/mobileDashboard";
@@ -1580,28 +1552,28 @@ app.get(
   }
 );
 
-
-app.get('/logout', (req, res) => {
+app.get("/logout", (req, res) => {
   req.logout(() => {
-    res.redirect('/');
+    res.redirect("/");
   });
 });
 
-
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/// OTP LOGIN ROUTES 
- const VERIFY_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
+/// OTP LOGIN ROUTES
+const VERIFY_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
   // Basic phone number validation
   if (!phone || !/^\d{10}$/.test(phone)) {
-    return res.render("login", { error: "⚠️ Please enter a valid 10-digit phone number." });
+    return res.render("login", {
+      error: "⚠️ Please enter a valid 10-digit phone number.",
+    });
   }
 
   // Save phone to session
-    setLoginPhoneCookie(res, phone);
-  
+  setLoginPhoneCookie(res, phone);
+
   // Optional: Analytics/tracking
   await trackFunnelStep(req, "login_phone", { phone });
 
@@ -1609,19 +1581,19 @@ app.post("/otpLogin", async (req, res) => {
   console.log("Verify SID:", VERIFY_SID);
 
   try {
-    await client.verify.v2
-      .services(VERIFY_SID)
-      .verifications.create({
-        to: `+91${phone}`,
-        channel: "sms",
-      });
+    await client.verify.v2.services(VERIFY_SID).verifications.create({
+      to: `+91${phone}`,
+      channel: "sms",
+    });
     req.session.save((err) => {
-  if (err) {
-    console.error('Session save error before redirect:', err);
-    return res.render('login', { error: '⚠️ Session error. Please try again.' });
-  }
-  return res.redirect('/verify-login');
-});
+      if (err) {
+        console.error("Session save error before redirect:", err);
+        return res.render("login", {
+          error: "⚠️ Session error. Please try again.",
+        });
+      }
+      return res.redirect("/verify-login");
+    });
   } catch (err) {
     console.error("OTP send error:", err?.message || err);
 
@@ -1636,14 +1608,12 @@ app.get("/verify-login", (req, res) => {
   res.render("verify-login", { error: null, phone });
 });
 
-
-
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
- 
+
   const { otp } = req.body;
   console.log(otp);
-   const phone = req.signedCookies?.login_phone || "";
+  const phone = req.signedCookies?.login_phone || "";
   console.log(phone);
 
   if (!otp) {
@@ -1694,9 +1664,9 @@ app.post("/verify-login", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
-     const redirectUrl = req.session.redirectTo || "/mobileDashboard";
+    const redirectUrl = req.session.redirectTo || "/mobileDashboard";
     delete req.session.redirectTo; // clean up
-  return res.redirect(redirectUrl);
+    return res.redirect(redirectUrl);
   } catch (err) {
     console.error("OTP Verify Error:", err?.message || err);
     return res.render("verify-login", {
@@ -1705,18 +1675,13 @@ app.post("/verify-login", async (req, res) => {
   }
 });
 
-
-
-
 app.get("/set-username", (req, res) => {
   const phone = req.signedCookies?.[LOGIN_COOKIE];
   if (!/^\d{10}$/.test(phone || "")) {
-  return res.redirect("/login");
-}
+    return res.redirect("/login");
+  }
   res.render("set-username", { error: null });
 });
-
-
 
 app.post("/set-username", async (req, res) => {
   const { username } = req.body;
@@ -1747,19 +1712,15 @@ app.post("/set-username", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
-         const redirectUrl = req.session.redirectTo || "/mobileDashboard";
+    const redirectUrl = req.session.redirectTo || "/mobileDashboard";
     delete req.session.redirectTo; // clean up
-  return res.redirect(redirectUrl);
-    
-    
+    return res.redirect(redirectUrl);
   } catch (err) {
     res.render("set-username", {
       error: err.message,
     });
   }
 });
-
-
 
 app.post("/resend-login-otp", async (req, res) => {
   const phone = req.session.phone;
@@ -1793,16 +1754,11 @@ app.post("/resend-login-otp", async (req, res) => {
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 //// LINK PHONE AFTER GOOGLE ACCOUNT
 
-
-
 app.get("/mobile/link-phone", (req, res) => {
-  res.render("link-phone", { error: null});
+  res.render("link-phone", { error: null });
 });
-
-
 
 app.post("/mobile/link-phone", async (req, res) => {
   let rawPhone = req.body.phone || "";
@@ -1831,9 +1787,9 @@ app.post("/mobile/link-phone", async (req, res) => {
   // Check if already linked
   const existing = await User.findOne({ phone: phone });
   if (existing && String(existing._id) !== String(req.session.user._id)) {
-     req.session.mergePhone = canonicalPhone;
+    req.session.mergePhone = canonicalPhone;
     req.session.mergeTargetUserId = existing._id;
-     return res.render("merge-confirm", {
+    return res.render("merge-confirm", {
       phone: canonicalPhone,
       existingUser: existing,
     });
@@ -1852,7 +1808,7 @@ app.post("/mobile/link-phone", async (req, res) => {
     res.redirect("/verify-link-phone");
   } catch (err) {
     console.error("Failed to send OTP:", err);
-    res.render("link-phone", { error: err});
+    res.render("link-phone", { error: err });
   }
 });
 
@@ -1863,10 +1819,12 @@ app.post("/mobile/merge-confirm", async (req, res) => {
   }
 
   try {
-    await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID).verifications.create({
-      to: phone,
-      channel: "sms",
-    });
+    await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+      .verifications.create({
+        to: phone,
+        channel: "sms",
+      });
 
     req.session.linkPhone = phone.slice(3); // remove +91
     req.session.isMergeFlow = true;
@@ -1877,12 +1835,9 @@ app.post("/mobile/merge-confirm", async (req, res) => {
   }
 });
 
-
 app.get("/verify-link-phone", (req, res) => {
   res.render("verify-link-phone", { error: null });
 });
-
-
 
 app.post("/verify-link-phone", async (req, res) => {
   const otp = req.body.otp;
@@ -1890,7 +1845,8 @@ app.post("/verify-link-phone", async (req, res) => {
   const canonicalPhone = "+91" + phone;
 
   try {
-    const verificationCheck = await client.verify.v2.services(process.env.TWILIO_VERIFY_SERVICE_SID)
+    const verificationCheck = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
       .verificationChecks.create({
         to: canonicalPhone,
         code: otp,
@@ -1930,7 +1886,8 @@ app.post("/verify-link-phone", async (req, res) => {
     req.session.mergePhone = null;
     req.session.mergeTargetUserId = null;
     req.session.isMergeFlow = null;
-    const redirectTo = req.session.pendingRedirectAfterPhoneLink || "/mobile/sendParcel";
+    const redirectTo =
+      req.session.pendingRedirectAfterPhoneLink || "/mobile/sendParcel";
     res.redirect(redirectTo);
   } catch (err) {
     console.error("OTP verification failed:", err);
@@ -1941,23 +1898,15 @@ app.post("/verify-link-phone", async (req, res) => {
   }
 });
 
-
-
-
-
-
-
-
 app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
-
   const user = await User.findById(req.session.user._id).lean();
   if (!user) return res.redirect("/login");
   try {
     // Sent by user, excluding self-storage
     const sentParcels = await Parcel2.find({
-      senderPhone : user.phone,
+      senderPhone: user.phone,
       store_self: { $ne: true },
-       terminal_store:{$ne : true}
+      terminal_store: { $ne: true },
     })
       .sort({ createdAt: -1 })
       .lean();
@@ -1966,31 +1915,28 @@ app.get("/mobileDashboard", isAuthenticated, async (req, res) => {
     const receivedParcels = await Parcel2.find({
       receiverPhone: user.phone,
       store_self: { $ne: true },
-      terminal_store : {$ne : true}
+      terminal_store: { $ne: true },
     })
       .sort({ createdAt: -1 })
       .lean();
 
     // Optional: Self-stored parcels
-const storedParcels = await Parcel2.find({
-  senderPhone: user.phone,
-  $or: [
-    { terminal_store: true },
-    { store_self: true }
-  ]
-})
+    const storedParcels = await Parcel2.find({
+      senderPhone: user.phone,
+      $or: [{ terminal_store: true }, { store_self: true }],
+    })
       .sort({ createdAt: -1 })
       .lean();
 
     // Awaiting pickup counter
     const awaitingPickCount = await Parcel2.countDocuments({
       status: "awaiting_pick",
-      receiverPhone: user.phone
+      receiverPhone: user.phone,
     });
 
     const awaitingSendCount = await Parcel2.countDocuments({
-      status : "awaiting_drop",
-      receiverPhone:user.phone
+      status: "awaiting_drop",
+      receiverPhone: user.phone,
     });
 
     res.render("mobile/dashboard", {
@@ -1999,64 +1945,60 @@ const storedParcels = await Parcel2.find({
       receivedParcels,
       storedParcels,
       awaitingPickCount,
-      awaitingSendCount
+      awaitingSendCount,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error loading parcels.");
   }
 });
 
-
-app.delete('/mobile/parcel/del/:id', async (req, res) => {
+app.delete("/mobile/parcel/del/:id", async (req, res) => {
   try {
     await Parcel2.findByIdAndDelete(req.params.id);
-    res.redirect('/mobileDashboard'); // or wherever you want to go after deletion
+    res.redirect("/mobileDashboard"); // or wherever you want to go after deletion
   } catch (err) {
     console.error(err);
-    res.status(500).send('Server Error');
+    res.status(500).send("Server Error");
   }
 });
-app.get("/mobile/parcel/:id", isAuthenticated,async (req, res) => {
+app.get("/mobile/parcel/:id", isAuthenticated, async (req, res) => {
   const parcel = await Parcel2.findOne({ customId: req.params.id });
-  if(!parcel){
+  if (!parcel) {
     res.send("NOT FOUND");
   }
-   const now = new Date();
+  const now = new Date();
   const isExpired = now > parcel.expiresAt;
 
   res.render("mobile/parcel-tracking", { parcel, isExpired });
 });
 
+app.get("/mobile/sendParcel", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.session.user._id).lean();
 
-
-app.get("/mobile/sendParcel", isAuthenticated, async(req,res)=>{
-   const user = await User.findById(req.session.user._id).lean();
-    
   if (!user) return res.redirect("/login");
-   const lockers = await Locker.find();
-    
-    res.render("mobile/sendParcel",{user,lockers});
-})
+  const lockers = await Locker.find();
 
-app.get("/mobile/receive", isAuthenticated, async(req,res)=>{
-     const user = await User.findById(req.session.user._id).lean();
+  res.render("mobile/sendParcel", { user, lockers });
+});
+
+app.get("/mobile/receive", isAuthenticated, async (req, res) => {
+  const user = await User.findById(req.session.user._id).lean();
   if (!user) return res.redirect("/login");
-    try {
+  try {
     const userPhone = req.session.user.phone;
 
     const incomingParcels = await Parcel2.find({
-      receiverPhone: userPhone
+      receiverPhone: userPhone,
     }).sort({ createdAt: -1 });
 
     const filteredParcels = incomingParcels.filter(
-      p => p.status === "awaiting_pick"
+      (p) => p.status === "awaiting_pick"
     );
 
     res.render("mobile/receive", {
       parcels: filteredParcels,
-      parcelCount: filteredParcels.length
+      parcelCount: filteredParcels.length,
     });
   } catch (error) {
     console.error("Error fetching parcels:", error);
@@ -2064,17 +2006,15 @@ app.get("/mobile/receive", isAuthenticated, async(req,res)=>{
   }
 });
 
-app.get("/mobileAccount",isAuthenticated,async(req,res)=>{
-     try {
+app.get("/mobileAccount", isAuthenticated, async (req, res) => {
+  try {
     const user = await User.findById(req.session.user._id).lean();
-       if (!user) return res.redirect("/login");
-    res.render("mobile/account", { user}, (err, html) => {
+    if (!user) return res.redirect("/login");
+    res.render("mobile/account", { user }, (err, html) => {
       if (err) {
         console.error("Error rendering /account:", err);
         return res.status(500).send("Internal Server Error");
       }
-
-      
 
       res.send(html);
     });
@@ -2084,10 +2024,10 @@ app.get("/mobileAccount",isAuthenticated,async(req,res)=>{
   }
 });
 
-app.get("/mobile/store",isAuthenticated,async(req,res)=>{
-     try {
-       const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.redirect("/login");
+app.get("/mobile/store", isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.redirect("/login");
     const lockersRaw = await Locker.find({}).lean();
     const lockers = lockersRaw.map((locker) => ({
       lockerId: locker.lockerId,
@@ -2113,23 +2053,26 @@ app.get("/mobile/store",isAuthenticated,async(req,res)=>{
   }
 });
 
-
 app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
   try {
     const user = await User.findById(req.session.user._id);
     if (!user) return res.redirect("/login");
 
     const size = req.query.size;
-    const isSelf = req.query.self === 'true';
+    const isSelf = req.query.self === "true";
 
-    const savedContacts = await Contact.find({ userId: user._id }).sort({ createdAt: -1 });
+    const savedContacts = await Contact.find({ userId: user._id }).sort({
+      createdAt: -1,
+    });
     const savedAddresses = await SavedAddress.find({ userId: user._id });
 
     if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
     // Redirect if no phone is linked
     if (!user.phone) {
-       req.session.pendingRedirectAfterPhoneLink = `/mobile/send/step2${size ? `?size=${size}` : ""}`;
+      req.session.pendingRedirectAfterPhoneLink = `/mobile/send/step2${
+        size ? `?size=${size}` : ""
+      }`;
       req.flash("error", "Please verify your phone number to continue.");
       return res.redirect("/mobile/link-phone");
     }
@@ -2147,19 +2090,18 @@ app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
       req.session.parcelDraft.receiverPhone = user.phone;
       req.session.parcelDraft.isSelf = true;
       console.log("Self-send to:", user.phone);
-      return res.redirect("/mobile/send/step3");  // ✅ FIXED missing slash
+      return res.redirect("/mobile/send/step3"); // ✅ FIXED missing slash
     }
 
     const lockers = await Locker.find({
-      "compartments.isBooked": false
+      "compartments.isBooked": false,
     });
 
     res.render("mobile/parcel/step2", {
       lockers,
       savedAddresses,
-      savedContacts
+      savedContacts,
     });
-
   } catch (err) {
     console.error("Error in /mobile/send/step2:", err);
     res.status(500).send("Server error. Please try again.");
@@ -2167,8 +2109,7 @@ app.get("/mobile/send/step2", isAuthenticated, async (req, res) => {
 });
 
 app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
-
-    const {
+  const {
     receiverName,
     receiverPhone,
     deliveryOption,
@@ -2178,13 +2119,12 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
     selectedLocker,
     saveContact,
     duration,
-    
   } = req.body;
   console.log(duration);
-    req.session.parcelDraft.duration = duration;
-    
+  req.session.parcelDraft.duration = duration;
+
   /// SAVE CONTACT FLOW
-  if (saveContact === 'true' && receiverName && receiverPhone) {
+  if (saveContact === "true" && receiverName && receiverPhone) {
     try {
       const existingContact = await Contact.findOne({
         userId: req.user._id,
@@ -2192,36 +2132,37 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
       });
       if (!existingContact) {
         const newContact = new Contact({
-        userId: req.user._id,
-        name: receiverName.trim(),
-        phone: receiverPhone.trim(),
-      });
-      await newContact.save();
+          userId: req.user._id,
+          name: receiverName.trim(),
+          phone: receiverPhone.trim(),
+        });
+        await newContact.save();
       } else {
         console.log("Contact already exists. Skipping save.");
       }
-    } 
-    catch (err) {
+    } catch (err) {
       console.error("Error saving contact:", err);
-    }}
+    }
+  }
   const user = await User.findById(req.session.user._id);
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
-  
+
   // STORE FOR SELF
   if (deliveryOption === "self") {
     req.session.parcelDraft.isSelf = true;
     req.session.parcelDraft.receiverName = user.username || "Self";
     req.session.parcelDraft.receiverPhone = user.phone || "";
     req.session.parcelDraft.receiverDeliveryMethod = "self_pickup";
-  }
-
-  else {
+  } else {
     if (!receiverName || !receiverPhone) {
       req.flash("error", "Please enter both name and phone for the recipient.");
       return res.redirect("/mobile/send/step2");
     }
-     if (!receiverDeliveryMethod) {
-      req.flash("error", "Please select how the receiver will receive the parcel.");
+    if (!receiverDeliveryMethod) {
+      req.flash(
+        "error",
+        "Please select how the receiver will receive the parcel."
+      );
       return res.redirect("/mobile/send/step2");
     }
 
@@ -2229,11 +2170,13 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
     req.session.parcelDraft.receiverName = receiverName;
     req.session.parcelDraft.receiverPhone = receiverPhone;
     req.session.parcelDraft.receiverDeliveryMethod = receiverDeliveryMethod;
-  
 
     if (receiverDeliveryMethod === "address_delivery") {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
-        req.flash("error", "Please fill in recipient address, pincode, and select a dispatch locker.");
+        req.flash(
+          "error",
+          "Please fill in recipient address, pincode, and select a dispatch locker."
+        );
         return res.redirect("/mobile/send/step2");
       }
       if (!selectedLocker || !mongoose.Types.ObjectId.isValid(selectedLocker)) {
@@ -2251,60 +2194,57 @@ app.post("/mobile/send/step2", isAuthenticated, async (req, res) => {
       req.session.parcelDraft.selectedLocker = selectedLocker;
       req.session.parcelDraft.lockerLat = locker.location.lat;
       req.session.parcelDraft.lockerLng = locker.location.lng;
-      req.session.parcelDraft.selectedLockerPincode =lockerPincode;
+      req.session.parcelDraft.selectedLockerPincode = lockerPincode;
       req.session.parcelDraft.status = "awaiting_drop";
       if (receiverDeliveryMethod === "address_delivery") {
         /// SAVE ADDRESS TO DB
         if (
-        req.body.saveAddress === "true" &&
-        req.body.recipientAddress &&
-        req.body.recipientPincode &&
-        req.body.receiverName
-        ){
+          req.body.saveAddress === "true" &&
+          req.body.recipientAddress &&
+          req.body.recipientPincode &&
+          req.body.receiverName
+        ) {
           const alreadyExists = await SavedAddress.findOne({
-          userId: req.user._id,
-          address: req.body.recipientAddress.trim(),
-          pincode: req.body.recipientPincode.trim()
-        });
-        if (!alreadyExists) {
-          await SavedAddress.create({
             userId: req.user._id,
             address: req.body.recipientAddress.trim(),
             pincode: req.body.recipientPincode.trim(),
-            ownerName : req.body.receiverName,
-            label: "Saved on " + new Date().toLocaleDateString()
           });
+          if (!alreadyExists) {
+            await SavedAddress.create({
+              userId: req.user._id,
+              address: req.body.recipientAddress.trim(),
+              pincode: req.body.recipientPincode.trim(),
+              ownerName: req.body.receiverName,
+              label: "Saved on " + new Date().toLocaleDateString(),
+            });
+          }
         }
       }
     }
   }
-}
   if (receiverDeliveryMethod === "address_delivery") {
     return res.redirect("/mobile/send/estimate");
-  }
-  else{
+  } else {
     return res.redirect("/mobile/send/step3");
   }
 });
 
-
-
 app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
-   const user = await User.findById(req.session.user._id).lean();
+  const user = await User.findById(req.session.user._id).lean();
   if (!user) return res.redirect("/login");
   try {
     if (!req.session.parcelDraft) {
-  req.flash("error", "Parcel draft not found. Please start again.");
-  return res.redirect("/mobile/sendParcel");
-}
+      req.flash("error", "Parcel draft not found. Please start again.");
+      return res.redirect("/mobile/sendParcel");
+    }
 
-    const {rate} = req.query;
+    const { rate } = req.query;
     const draft = req.session.parcelDraft;
     const lockerId = draft.selectedLocker;
     const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log(draft.duration);
+    console.log(draft.duration);
     let cost = getEstimatedCost(draft.size, draft.duration);
     if (draft.receiverDeliveryMethod === "address_delivery") {
       cost += parseFloat(rate);
@@ -2331,34 +2271,31 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     }
 
     // Generate customId
-    
+
     let customId;
     let exists = true;
 
     while (exists) {
-   customId = "P" + Math.random().toString(36).substring(2, 7).toUpperCase();
-    exists = await Parcel2.exists({ customId });
-  }
-
+      customId = "P" + Math.random().toString(36).substring(2, 7).toUpperCase();
+      exists = await Parcel2.exists({ customId });
+    }
 
     let razorpayOrder = null;
     let razorpayPaymentLink = null;
     let status = "awaiting_drop";
     let paymentStatus = "completed";
 
-
     // Handle both sender and receiver pay
-    
-      status = "awaiting_payment";
-      paymentStatus = "pending";
-      //expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hours
-      razorpayOrder = await razorpay.orders.create({
-        amount: Math.round(parseFloat(cost) * 100),
-        currency: "INR",
-        receipt: `parcel_${Date.now()}`,
-        payment_capture: 1
-      });
 
+    status = "awaiting_payment";
+    paymentStatus = "pending";
+    //expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hours
+    razorpayOrder = await razorpay.orders.create({
+      amount: Math.round(parseFloat(cost) * 100),
+      currency: "INR",
+      receipt: `parcel_${Date.now()}`,
+      payment_capture: 1,
+    });
 
     //   razorpayLinkObject  = await razorpay.paymentLink.create({
     //   amount: Math.round(parseFloat(cost) * 100),
@@ -2376,7 +2313,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     //   callback_url: `${process.env.BASE_URL}/mobile/payment/success-link?parcelId=${customId}`,
     //   callback_method: "get"
     // });
-    
+
     // razorpayPaymentLink = razorpayLinkObject.short_url;
 
     const parcel = new Parcel2({
@@ -2392,10 +2329,10 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       selectedLockerPincode: draft.selectedLockerPincode,
       accessCode,
       qrImage,
-      lockerLat : draft.lockerLat,
-      lockerLng : draft.lockerLng,
+      lockerLat: draft.lockerLat,
+      lockerLng: draft.lockerLng,
       store_self,
-      duration : draft.duration,
+      duration: draft.duration,
       lockerId: draft.lockerId || null,
       cost: cost.toString(),
       status,
@@ -2403,32 +2340,31 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       droppedAt: null,
       compartmentId: null,
       razorpayOrderId: razorpayOrder?.id || null,
-     razorpayPaymentLink: razorpayPaymentLink || null,
+      razorpayPaymentLink: razorpayPaymentLink || null,
       customId,
-      billing:{
-        ratePerHour:  cost.toString()
-  }});
-    
+      billing: {
+        ratePerHour: cost.toString(),
+      },
+    });
+
     await parcel.save();
     req.session.inProgressParcelId = parcel._id;
-    if(store_self){
+    if (store_self) {
       return res.render("mobile/parcel/self_payment", {
         parcel,
         razorpayKeyId: process.env.RAZORPAY_KEY_ID,
         orderId: razorpayOrder.id,
         amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency
+        currency: razorpayOrder.currency,
       });
     }
-      return res.render("mobile/parcel/payment", {
-        parcel,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
-        orderId: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency
-      });
-   
-
+    return res.render("mobile/parcel/payment", {
+      parcel,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+    });
   } catch (error) {
     console.error("❌ Error in /send/step3:", error);
     req.flash("error", error.message || "Something went wrong.");
@@ -2436,51 +2372,52 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/mobile/parcel/:id/receiver-pay", isAuthenticated, async (req, res) => {
-   const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.redirect("/login");
-  const parcel = await Parcel2.findById(req.params.id);
-  if (!parcel) return res.status(404).send("Parcel not found");
+app.get(
+  "/mobile/parcel/:id/receiver-pay",
+  isAuthenticated,
+  async (req, res) => {
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.redirect("/login");
+    const parcel = await Parcel2.findById(req.params.id);
+    if (!parcel) return res.status(404).send("Parcel not found");
 
-  if (parcel.paymentStatus === "completed") {
-    return res.send("This parcel is already paid.");
-  }
+    if (parcel.paymentStatus === "completed") {
+      return res.send("This parcel is already paid.");
+    }
 
-  // Generate payment link only if not already generated
-  if (!parcel.razorpayPaymentLink) {
-    const razorpayPaymentLink = await razorpay.paymentLink.create({
-      amount: Math.round(parseFloat(parcel.cost) * 100),
-      currency: "INR",
-      accept_partial: false,
-      description: `Payment for Parcel ${parcel.customId}`,
-      customer: {
-        name: parcel.receiverName,
-        contact: parcel.receiverPhone
-      },
-      notify: {
-        sms: true,
-        email: false
-      },
-      callback_url: `${process.env.BASE_URL}mobile/payment/success-link?parcelId=${parcel._id}`,
-      callback_method: "get"
+    // Generate payment link only if not already generated
+    if (!parcel.razorpayPaymentLink) {
+      const razorpayPaymentLink = await razorpay.paymentLink.create({
+        amount: Math.round(parseFloat(parcel.cost) * 100),
+        currency: "INR",
+        accept_partial: false,
+        description: `Payment for Parcel ${parcel.customId}`,
+        customer: {
+          name: parcel.receiverName,
+          contact: parcel.receiverPhone,
+        },
+        notify: {
+          sms: true,
+          email: false,
+        },
+        callback_url: `${process.env.BASE_URL}mobile/payment/success-link?parcelId=${parcel._id}`,
+        callback_method: "get",
+      });
+
+      // Save payment link
+      parcel.razorpayPaymentLink = razorpayPaymentLink.short_url;
+      parcel.status = "awaiting_payment";
+      parcel.paymentStatus = "pending";
+      await parcel.save();
+    }
+
+    // Render EJS page with the link
+    res.render("mobile/showPaymentLink", {
+      parcel,
+      paymentLink: parcel.razorpayPaymentLink,
     });
-
-    // Save payment link
-    parcel.razorpayPaymentLink = razorpayPaymentLink.short_url;
-    parcel.status = "awaiting_payment";
-    parcel.paymentStatus = "pending";
-    await parcel.save();
   }
-
-  // Render EJS page with the link
-  res.render("mobile/showPaymentLink", {
-    parcel,
-    paymentLink: parcel.razorpayPaymentLink
-  });
-});
-
-
-
+);
 
 app.get("/mobile/payment/success-link", async (req, res) => {
   const {
@@ -2489,23 +2426,20 @@ app.get("/mobile/payment/success-link", async (req, res) => {
     razorpay_payment_link_id,
     razorpay_payment_link_status,
     razorpay_signature,
-    customId
+    customId,
   } = req.query;
 
   try {
-
-const parcel = await Parcel2.findOne({
-  $or: [
-    { _id: parcelId },         // This will work if parcelId is a valid ObjectId
-    { customId: customId }
-  ]
-});
-
-    
+    const parcel = await Parcel2.findOne({
+      $or: [
+        { _id: parcelId }, // This will work if parcelId is a valid ObjectId
+        { customId: customId },
+      ],
+    });
 
     // Only update if the payment was successful
     if (razorpay_payment_link_status === "paid") {
-      parcel.paymentStatus = "completed"; 
+      parcel.paymentStatus = "completed";
       parcel.status = "awaiting_drop"; // or any next logical state
       parcel.razorpayPaymentId = razorpay_payment_id;
       parcel.razorpayPaymentLinkId = razorpay_payment_link_id;
@@ -2513,8 +2447,8 @@ const parcel = await Parcel2.findOne({
       await parcel.save();
 
       return res.render("mobile/paymentSuccess", {
-      parcel
-    });
+        parcel,
+      });
     } else {
       return res.status(400).send("Payment failed or not completed.");
     }
@@ -2523,8 +2457,6 @@ const parcel = await Parcel2.findOne({
     res.status(500).send("Something went wrong processing your payment.");
   }
 });
-
-
 
 app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.session.user._id).lean();
@@ -2568,8 +2500,7 @@ app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
         }
       );
 
-      console.log("🚚 Shiprocket raw response:", JSON.stringify(response.data, null, 2));
-
+      // console.log("🚚 Shiprocket raw response:", JSON.stringify(response.data, null, 2));
       const apiData = response.data;
 
       if (
@@ -2582,14 +2513,17 @@ app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
 
         if (courierOptions.length > 0) {
           maxDays = Math.max(
-            ...courierOptions.map(c => Number(c.estimated_delivery_days || 1))
+            ...courierOptions.map((c) => Number(c.estimated_delivery_days || 1))
           );
         }
       } else {
         console.error("❌ Shiprocket returned invalid structure:", apiData);
       }
     } catch (shipErr) {
-      console.error("❌ Shiprocket API failed, using fallback ETA:", shipErr.message);
+      console.error(
+        "❌ Shiprocket API failed, using fallback ETA:",
+        shipErr.message
+      );
     }
 
     // 💰 Calculate locker cost from size + days
@@ -2601,14 +2535,13 @@ app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
     }
 
     res.render("mobile/parcel/estimate", {
-      courierOptions,              // may be empty
+      courierOptions, // may be empty
       lockercost,
       maxDays,
       parcelSize: draft.size,
       shiprocketFailed: courierOptions.length === 0,
       query: req.query,
     });
-
   } catch (err) {
     console.error("❌ Error in estimate route:", err);
     req.flash("error", "Error fetching delivery estimate.");
@@ -2617,7 +2550,9 @@ app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
 });
 
 function calculateLockerCostByDays(size, days) {
-  const normalizedSize = String(size || "").toLowerCase().trim();
+  const normalizedSize = String(size || "")
+    .toLowerCase()
+    .trim();
 
   const rates = {
     small: 50,
@@ -2629,12 +2564,15 @@ function calculateLockerCostByDays(size, days) {
   return perDay * Math.max(1, Number(days) || 1);
 }
 
-
-
 app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
   try {
     const { order_id, payment_id, signature } = req.query;
-    const { parcelId, razorpay_payment_link_id, razorpay_payment_id, razorpay_payment_link_status } = req.query;
+    const {
+      parcelId,
+      razorpay_payment_link_id,
+      razorpay_payment_id,
+      razorpay_payment_link_status,
+    } = req.query;
 
     // ✅ Case 1: Sender Pays (Order flow)
     if (order_id && payment_id && signature) {
@@ -2652,7 +2590,7 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
         { razorpayOrderId: order_id },
         {
           paymentStatus: "completed",
-          status: "awaiting_drop"
+          status: "awaiting_drop",
         },
         { new: true }
       );
@@ -2663,8 +2601,9 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
       }
 
       delete req.session.parcelDraft;
-      
-      const redirectTo = req.session.redirectTo || `/mobile/parcel/${parcel._id}/success`;
+
+      const redirectTo =
+        req.session.redirectTo || `/mobile/parcel/${parcel._id}/success`;
       delete req.session.redirectTo;
       return res.redirect(redirectTo);
     }
@@ -2688,7 +2627,6 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
 
     req.flash("error", "Invalid payment callback.");
     res.redirect("/mobileDashboard");
-
   } catch (err) {
     console.error("❌ Payment success handler error:", err);
     req.flash("error", "Something went wrong during payment verification.");
@@ -2696,160 +2634,156 @@ app.get("/mobile/payment/success", isAuthenticated, async (req, res) => {
   }
 });
 
-
 app.get("/mobile/view/parcel/:id/success", async (req, res) => {
-    const parcelid = req.params.id;
-    const parcel = await Parcel2.findById(req.params.id);
-    if (!parcel) return res.status(404).send("Parcel not found");
-    
+  const parcelid = req.params.id;
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+
   res.render("mobile/parcel/success", { parcel });
 });
 
 app.get("/mobile/parcel/:id/success", async (req, res) => {
-
-
-    const parcelid = req.params.id;
-    const parcel = await Parcel2.findById(req.params.id);
-    if (!parcel) return res.status(404).send("Parcel not found");
-     await client.messages.create({
-    to: `whatsapp:+91${parcel.senderPhone}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX38edc7859ecff729dae14e0ce41923bb', 
-    contentVariables: JSON.stringify({
-      1: `${parcel.senderName}`, // Sender name
-      2: `${parcel.customId}/qr` // Parcel ID
-})
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
+  const parcelid = req.params.id;
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+  await client.messages
+    .create({
+      to: `whatsapp:+91${parcel.senderPhone}`,
+      from: "whatsapp:+15558076515",
+      contentSid: "HX38edc7859ecff729dae14e0ce41923bb",
+      contentVariables: JSON.stringify({
+        1: `${parcel.senderName}`, // Sender name
+        2: `${parcel.customId}/qr`, // Parcel ID
+      }),
+    })
+    .then((message) => console.log("✅ WhatsApp Message Sent:", message.sid))
+    .catch((error) => console.error("❌ WhatsApp Message Error:", error));
 
   const smsText2 = `Your Drop Point Locker Access Code is ${parcel.accessCode}. Please don't share this with anyone. -DROPPOINT`;
-  const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
+  const sendResult2 = sendSMS(`91${parcel.senderPhone}`, smsText2);
   console.log(sendResult2);
-
 
   res.render("mobile/parcel/success", { parcel });
 });
 
 //// STORE VIA LOCKER CATALOGUE
 
-app.get("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
-  try {
+app.get(
+  "/mobile/send/select-locker/:lockerId",
+  isAuthenticated,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.user._id).lean();
+      if (!user) return res.redirect("/login");
+
+      const lockerId = req.params.lockerId;
+      const locker = await Locker.findOne({ lockerId }).lean();
+
+      if (!locker) {
+        req.flash("error", "Locker Not Found");
+        return res.redirect("/mobile/store");
+      }
+
+      // If user's phone is not linked, redirect to phone verification
+      if (!user.phone) {
+        req.session.pendingRedirectAfterPhoneLink = `/mobile/send/select-locker/${lockerId}`;
+        req.flash("error", "Please verify your phone number to continue.");
+        return res.redirect("/mobile/link-phone");
+      }
+
+      // ✅ Filter available compartments (isBooked == false)
+      const availableCompartments = locker.compartments.filter(
+        (c) => !c.isBooked || c.isOverstay
+      );
+
+      // Render EJS and pass locker + available compartments
+      res.render("mobile/parcel/select-size", {
+        locker,
+        availableCompartments,
+        // groupedBySize, // uncomment if you plan to use grouped display
+      });
+    } catch (err) {
+      console.error("Error selecting locker:", err);
+      req.flash("error", "An error occurred. Please try again.");
+      res.redirect("/mobile/store");
+    }
+  }
+);
+
+app.post(
+  "/mobile/send/select-locker/:lockerId",
+  isAuthenticated,
+  async (req, res) => {
     const user = await User.findById(req.session.user._id).lean();
     if (!user) return res.redirect("/login");
-
     const lockerId = req.params.lockerId;
-    const locker = await Locker.findOne({ lockerId }).lean();
-
+    const size = req.body.size;
+    const duration = req.body.duration;
+    const locker = await Locker.findOne({ lockerId });
     if (!locker) {
-      req.flash("error", "Locker Not Found");
+      req.flash("error", "Locker not found");
       return res.redirect("/mobile/store");
     }
 
-    // If user's phone is not linked, redirect to phone verification
-    if (!user.phone) {
-      req.session.pendingRedirectAfterPhoneLink = `/mobile/send/select-locker/${lockerId}`;
-      req.flash("error", "Please verify your phone number to continue.");
-      return res.redirect("/mobile/link-phone");
-    }
+    req.session.parcelDraft = {
+      isSelf: true,
+      type: "package",
+      size: size,
+      duration: duration,
+      lockerId: locker.lockerId,
+      location_id: locker.location?._id || null,
+      lockerLat: locker.location?.lat,
+      lockerLng: locker.location?.lng,
+      description: "Stored via locker catalog",
+      receiverName: req.user.username,
+      receiverPhone: req.user.phone,
+    };
 
-    // ✅ Filter available compartments (isBooked == false)
-    const availableCompartments = locker.compartments.filter(c => (!c.isBooked) || (c.isOverstay));
-
-    // Render EJS and pass locker + available compartments
-    res.render("mobile/parcel/select-size", {
-      locker,
-      availableCompartments,
-      // groupedBySize, // uncomment if you plan to use grouped display
-    });
-
-  } catch (err) {
-    console.error("Error selecting locker:", err);
-    req.flash("error", "An error occurred. Please try again.");
-    res.redirect("/mobile/store");
+    res.redirect("/mobile/send/step3");
   }
-});
-
-
-
-app.post("/mobile/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
-   const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.redirect("/login");
-  const lockerId = req.params.lockerId;
-  const size = req.body.size;
-  const duration = req.body.duration;
-  const locker = await Locker.findOne({ lockerId });
-  if (!locker) {
-    req.flash("error", "Locker not found");
-    return res.redirect("/mobile/store");
-  }
-   
-  
-  req.session.parcelDraft = { 
-    isSelf: true,
-    type: "package",
-    size: size,
-    duration: duration,
-    lockerId: locker.lockerId,
-    location_id: locker.location?._id || null,
-    lockerLat: locker.location?.lat,
-    lockerLng: locker.location?.lng,
-    description: "Stored via locker catalog",
-    receiverName: req.user.username,
-    receiverPhone: req.user.phone
-  };
-
-  res.redirect("/mobile/send/step3");
-
-});
-
+);
 
 app.get("/mobile/incoming/:id/qr", async (req, res) => {
-  try{
-const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
-  const parcelLocker = parcel.lockerId || "";
-  const accessCode = parcel.accessCode;
-  let qrImage;
-    
-      qrImage = await QRCode.toDataURL(accessCode);
-  res.render("mobile/qrPage2", { parcel,qrImage });
+  try {
+    const parcel = await Parcel2.findOne({ customId: req.params.id }).lean();
+    const parcelLocker = parcel.lockerId || "";
+    const accessCode = parcel.accessCode;
+    let qrImage;
+
+    qrImage = await QRCode.toDataURL(accessCode);
+    res.render("mobile/qrPage2", { parcel, qrImage });
+  } catch (err) {
+    res.send("INTERNAL SERVER ERROR!");
   }
-  catch(err){
-    res.send("INTERNAL SERVER ERROR!")
-  }
-  
 });
 
 // routes/qr.js (or inside app.js)
 app.get("/qr", async (req, res) => {
   try {
     const { parcelid } = req.query;
-    const parcel = await Parcel2.findOne({customId : parcelid}).lean();
-    if(!parcel){
-      res.status(500).json({error : "NO PARCEL FOUND"});
+    const parcel = await Parcel2.findOne({ customId: parcelid }).lean();
+    if (!parcel) {
+      res.status(500).json({ error: "NO PARCEL FOUND" });
     }
-     const parcelLocker = parcel.lockerId || "";
-  const accessCode = parcel.accessCode;
-  let qrImage;
-      qrImage = await QRCode.toDataURL(accessCode); 
-  res.render("mobile/qrPage", { parcel,qrImage });
+    const parcelLocker = parcel.lockerId || "";
+    const accessCode = parcel.accessCode;
+    let qrImage;
+    qrImage = await QRCode.toDataURL(accessCode);
+    res.render("mobile/qrPage", { parcel, qrImage });
   } catch (err) {
-   console.error(err);
+    console.error(err);
     res.status(500).json({ error: "INTERNAL SERVER ERROR" });
   }
 });
 
-
-
-
-app.get("/:id/qr",async(req,res)=>{
-  const parcel = await Parcel2.findOne({customId : req.params.id}).lean();
+app.get("/:id/qr", async (req, res) => {
+  const parcel = await Parcel2.findOne({ customId: req.params.id }).lean();
   const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
   let qrImage;
   qrImage = await QRCode.toDataURL(accessCode);
-  res.render("mobile/qrPage", {parcel, qrImage});
-})
-
+  res.render("mobile/qrPage", { parcel, qrImage });
+});
 
 app.post("/:parcelId/extend/create-order", async (req, res) => {
   try {
@@ -2865,14 +2799,14 @@ app.post("/:parcelId/extend/create-order", async (req, res) => {
     const order = await razorpay.orders.create({
       amount: amount, // in paise
       currency: "INR",
-      receipt: `extend_${parcel._id}_${Date.now()}`
+      receipt: `extend_${parcel._id}_${Date.now()}`,
     });
 
     res.json({
       key: process.env.RAZORPAY_KEY_ID,
       amount: order.amount,
       currency: order.currency,
-      orderId: order.id
+      orderId: order.id,
     });
   } catch (err) {
     console.error(err);
@@ -2880,59 +2814,71 @@ app.post("/:parcelId/extend/create-order", async (req, res) => {
   }
 });
 
-
-async function createPaymentLinkINR(amountINR, description, customerPhone, referenceId) {
+async function createPaymentLinkINR(
+  amountINR,
+  description,
+  customerPhone,
+  referenceId
+) {
   const payload = {
     amount: Math.round(amountINR * 100), // Razorpay uses paise
     currency: "INR",
     description,
     reference_id: referenceId,
     customer: {
-      contact: customerPhone
+      contact: customerPhone,
     },
     notify: {
       sms: true,
-      email: false
+      email: false,
     },
     reminder_enable: true,
-    callback_url: `${process.env.BASE_URL}/api/extensions/confirm?ref=${encodeURIComponent(referenceId)}`,
+    callback_url: `${
+      process.env.BASE_URL
+    }/api/extensions/confirm?ref=${encodeURIComponent(referenceId)}`,
     callback_method: "get", // not using webhooks; this gives user an optional redirect
   };
   const link = await razorpay.paymentLink.create(payload);
   return link; // { id, short_url, status, ... }
 }
 
-
 // ---------- Build the WhatsApp text with quick links ----------
 
 function ratePerHour(size) {
   switch (size) {
-    case "small":  return 10;
-    case "medium": return 20;
-    case "large":  return 30;
-    default:       return 20;
+    case "small":
+      return 10;
+    case "medium":
+      return 20;
+    case "large":
+      return 30;
+    default:
+      return 20;
   }
 }
 function calcAmountINR(size, hours) {
   return ratePerHour(size) * hours;
 }
 
-
 app.get("/api/parcels/:parcelId/extend", async (req, res) => {
   try {
     const { parcelId } = req.params;
     const hours = Math.max(1, parseInt(req.query.hours || "1", 10));
     const parcel = await Parcel2.findById(parcelId);
-   
-    
-    if (!parcel) return res.status(404).render("error", { message: "Parcel not found." });
+
+    if (!parcel)
+      return res.status(404).render("error", { message: "Parcel not found." });
 
     // choose who pays: default to receiver if present else sender
-    const payTo = (parcel.paymentOption === "receiver_pays" && parcel.receiverPhone)
-      ? parcel.receiverPhone
-      : (parcel.senderPhone || parcel.receiverPhone);
+    const payTo =
+      parcel.paymentOption === "receiver_pays" && parcel.receiverPhone
+        ? parcel.receiverPhone
+        : parcel.senderPhone || parcel.receiverPhone;
 
-    if (!payTo) return res.status(400).render("error", { message: "No phone number on parcel." });
+    if (!payTo)
+      return res
+        .status(400)
+        .render("error", { message: "No phone number on parcel." });
 
     const amountINR = calcAmountINR(parcel.size, hours);
     const referenceId = `EXT-${parcel.customId || parcel._id}-${Date.now()}`;
@@ -2950,7 +2896,9 @@ app.get("/api/parcels/:parcelId/extend", async (req, res) => {
     // create payment link
     const link = await createPaymentLinkINR(
       amountINR,
-      `Locker time extension: ${hours}h for ${parcel.customId || parcel.accessCode}`,
+      `Locker time extension: ${hours}h for ${
+        parcel.customId || parcel.accessCode
+      }`,
       payTo,
       referenceId
     );
@@ -2965,18 +2913,18 @@ app.get("/api/parcels/:parcelId/extend", async (req, res) => {
     try {
       const message = await client.messages.create({
         to: `whatsapp:+91${payTo}`,
-        from: 'whatsapp:+15558076515',
-        contentSid: 'HX7044cd35733cf55d58269aad267c1609',
+        from: "whatsapp:+15558076515",
+        contentSid: "HX7044cd35733cf55d58269aad267c1609",
         contentVariables: JSON.stringify({
           1: `${amountINR}`,
           2: `${hours}`,
-          3: `${link.short_url}`
-        })
+          3: `${link.short_url}`,
+        }),
       });
-      console.log('✅ WhatsApp Message Sent:', message.sid);
+      console.log("✅ WhatsApp Message Sent:", message.sid);
       whatsappResult = { success: true, info: message.sid };
     } catch (waErr) {
-      console.error('❌ WhatsApp Message Error:', waErr);
+      console.error("❌ WhatsApp Message Error:", waErr);
       whatsappResult = { success: false, info: waErr.message || String(waErr) };
     }
 
@@ -2987,11 +2935,14 @@ app.get("/api/parcels/:parcelId/extend", async (req, res) => {
       ext,
       link,
       whatsappResult,
-      message: "Payment link created and WhatsApp attempted. If paid, extension will be applied automatically."
+      message:
+        "Payment link created and WhatsApp attempted. If paid, extension will be applied automatically.",
     });
   } catch (err) {
     console.error(err);
-    res.status(500).render("error", { message: "Failed to create extension link." });
+    res
+      .status(500)
+      .render("error", { message: "Failed to create extension link." });
   }
 });
 
@@ -3005,14 +2956,16 @@ app.get("/api/extensions/confirm", async (req, res) => {
       .limit(10);
 
     // Collect results of all payment checks
-    const results = await Promise.all(pending.map(checkAndApplyPaymentForExtension));
-
+    const results = await Promise.all(
+      pending.map(checkAndApplyPaymentForExtension)
+    );
 
     res.render("confirm-extension", {
       title: "Extension Payment Confirmation",
       ref,
       results,
-      message: "Checked payment status. If paid, extension has been applied successfully.",
+      message:
+        "Checked payment status. If paid, extension has been applied successfully.",
     });
   } catch (e) {
     console.error(e);
@@ -3020,14 +2973,16 @@ app.get("/api/extensions/confirm", async (req, res) => {
   }
 });
 
-
 async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
   if (!ext || ext.status !== "issued" || !ext.paymentLinkId) return null;
 
   // defensive normalize
   const rawId = String(ext.paymentLinkId || "").trim();
   if (!rawId) {
-    console.warn("paymentLinkId empty after trim; marking extension invalid:", ext._id?.toString());
+    console.warn(
+      "paymentLinkId empty after trim; marking extension invalid:",
+      ext._id?.toString()
+    );
     ext.status = "invalid";
     await ext.save().catch(() => {});
     return null;
@@ -3055,19 +3010,25 @@ async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
       if (!parcel) {
         ext.status = "expired";
         await ext.save();
-        console.warn(`Parcel ${ext.parcelId} not found. Marked extension expired.`);
+        console.warn(
+          `Parcel ${ext.parcelId} not found. Marked extension expired.`
+        );
         return ext;
       }
 
       if (!parcel.expiresAt) {
-        console.error(`Parcel ${parcel._id} missing expiresAt — cannot extend.`);
+        console.error(
+          `Parcel ${parcel._id} missing expiresAt — cannot extend.`
+        );
         ext.status = "expired";
         await ext.save();
         return ext;
       }
 
       const oldExpiry = parcel.expiresAt;
-      const newExpiry = new Date(oldExpiry.getTime() + (ext.hours * 60 * 60 * 1000));
+      const newExpiry = new Date(
+        oldExpiry.getTime() + ext.hours * 60 * 60 * 1000
+      );
 
       const updated = await Parcel2.findByIdAndUpdate(
         parcel._id,
@@ -3096,49 +3057,74 @@ async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
 
       const payTo = payToFallback || parcel.phone || parcel.senderPhone;
       if (!payTo) {
-        console.warn("No payTo available for WhatsApp notification. Skipping message.");
+        console.warn(
+          "No payTo available for WhatsApp notification. Skipping message."
+        );
         return ext;
       }
 
-      const prettyOld = oldExpiry.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-      const prettyNew = newExpiry.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+      const prettyOld = oldExpiry.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      });
+      const prettyNew = newExpiry.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      });
 
       try {
         await client.messages.create({
           to: `whatsapp:+91${payTo}`,
-          from: 'whatsapp:+15558076515',
-          contentSid: 'HX65b3ce58a6ac5490574009526472bed8',
+          from: "whatsapp:+15558076515",
+          contentSid: "HX65b3ce58a6ac5490574009526472bed8",
           contentVariables: JSON.stringify({
             1: `${prettyOld}`,
             2: `${prettyNew}`,
-          })
+          }),
         });
-        console.log('✅ WhatsApp Message Sent for parcel', parcel._id.toString());
+        console.log(
+          "✅ WhatsApp Message Sent for parcel",
+          parcel._id.toString()
+        );
       } catch (waErr) {
-        console.error('❌ WhatsApp Message Error:', waErr);
+        console.error("❌ WhatsApp Message Error:", waErr);
       }
 
       return ext;
-
     } else if (link.status === "cancelled" || link.status === "expired") {
       ext.status = link.status;
       await ext.save();
       return ext;
     } else {
       // created/issued - still pending
-      console.debug("Payment link not paid yet:", { id: link.id, status: link.status });
+      console.debug("Payment link not paid yet:", {
+        id: link.id,
+        status: link.status,
+      });
       return ext;
     }
   } catch (err) {
     // log detailed response body from Razorpay if available (very useful)
     if (err && err.response && err.response.data) {
-      console.error("Razorpay error response:", JSON.stringify(err.response.data, null, 2));
+      console.error(
+        "Razorpay error response:",
+        JSON.stringify(err.response.data, null, 2)
+      );
       // handle specific "id does not exist" case
-      const desc = (err.response.data.error && err.response.data.error.description) || err.response.data.description || "";
-      if (/does not exist/i.test(desc) || /id provided does not exist/i.test(desc)) {
-        console.warn("Payment link id does not exist - marking extension invalid/failed", { paymentLinkId: rawId, extId: ext._id?.toString() });
+      const desc =
+        (err.response.data.error && err.response.data.error.description) ||
+        err.response.data.description ||
+        "";
+      if (
+        /does not exist/i.test(desc) ||
+        /id provided does not exist/i.test(desc)
+      ) {
+        console.warn(
+          "Payment link id does not exist - marking extension invalid/failed",
+          { paymentLinkId: rawId, extId: ext._id?.toString() }
+        );
         ext.status = "invalid"; // or "failed" — pick what fits your domain
-        await ext.save().catch(e => console.error("Failed to save ext after invalid:", e));
+        await ext
+          .save()
+          .catch((e) => console.error("Failed to save ext after invalid:", e));
         return ext;
       }
     }
@@ -3152,7 +3138,9 @@ async function checkAndApplyPaymentForExtension(ext, { payToFallback } = {}) {
 async function sendWhatsAppMessage(to, parcel) {
   try {
     // compute expiry and rates
-    const expTime = parcel.expiresAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const expTime = parcel.expiresAt.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    });
 
     const url1 = `${process.env.PUBLIC_BASE_URL}/api/parcels/${parcel._id}/extend?hours=1`;
     const url3 = `${process.env.PUBLIC_BASE_URL}/api/parcels/${parcel._id}/extend?hours=3`;
@@ -3161,10 +3149,14 @@ async function sendWhatsAppMessage(to, parcel) {
     // calculate rates (₹10/hr small, ₹20/hr medium, ₹30/hr large)
     function ratePerHour(size) {
       switch (size) {
-        case "small": return 10;
-        case "medium": return 20;
-        case "large": return 30;
-        default: return 20;
+        case "small":
+          return 10;
+        case "medium":
+          return 20;
+        case "large":
+          return 30;
+        default:
+          return 20;
       }
     }
     function calcAmountINR(size, hours) {
@@ -3177,9 +3169,9 @@ async function sendWhatsAppMessage(to, parcel) {
 
     // send template message
     const message = await client.messages.create({
-      from: 'whatsapp:+15558076515',             // e.g., 'whatsapp:+14155238886'
-      to: `whatsapp:+91${to}`,                               // e.g., 'whatsapp:+91XXXXXXXXXX'
-      contentSid: 'HX353b0adb24a8a1ef064c8e789f6bf12c', // Twilio Content SID (HSxxxxxxxxxx)
+      from: "whatsapp:+15558076515", // e.g., 'whatsapp:+14155238886'
+      to: `whatsapp:+91${to}`, // e.g., 'whatsapp:+91XXXXXXXXXX'
+      contentSid: "HX353b0adb24a8a1ef064c8e789f6bf12c", // Twilio Content SID (HSxxxxxxxxxx)
       contentVariables: JSON.stringify({
         1: `${parcel.accessCode}`,
         2: `${parcel.lockerId}` || "N/A",
@@ -3189,11 +3181,13 @@ async function sendWhatsAppMessage(to, parcel) {
         6: `${cost3}`,
         7: `${url3}`,
         8: `${cost6}`,
-        9: `${url6}`
-      })
+        9: `${url6}`,
+      }),
     });
 
-    console.log(`✅ WhatsApp expiry reminder sent to ${to}: SID ${message.sid}`);
+    console.log(
+      `✅ WhatsApp expiry reminder sent to ${to}: SID ${message.sid}`
+    );
     return message;
   } catch (err) {
     console.error("❌ Error sending WhatsApp message:", err.message);
@@ -3273,11 +3267,11 @@ const sentPingCache = new Map(); // simple anti-spam; you can persist in DB if n
 //  await client.messages.create({
 //     to: `whatsapp:+91${to}`,
 //     from: 'whatsapp:+15558076515',
-//     contentSid: 'HX668ef9da5023e2729ef64e5388e8abb4', 
+//     contentSid: 'HX668ef9da5023e2729ef64e5388e8abb4',
 //     contentVariables: JSON.stringify({
 //       1: `${p.accessCode}`,
 //       2: `6281672715` ,
-      
+
 // })
 // }).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
 // .catch(error => console.error('❌ WhatsApp Message Error:', error));
@@ -3288,67 +3282,68 @@ const sentPingCache = new Map(); // simple anti-spam; you can persist in DB if n
 //   }
 // });
 
-
 ///NFC IMPLEMENTATION
 
-app.get("/unlock/:lockerId/:compartmentId",async(req,res)=>{
-      if (!req.session || !req.session.user || !req.session.user._id) {
-      req.session.redirectTo = req.originalUrl;
-      return res.redirect("/login");
-    }
+app.get("/unlock/:lockerId/:compartmentId", async (req, res) => {
+  if (!req.session || !req.session.user || !req.session.user._id) {
+    req.session.redirectTo = req.originalUrl;
+    return res.redirect("/login");
+  }
   const user = await User.findById(req.session.user._id);
-  if(!user){
-      req.session.redirectTo = req.originalUrl;
+  if (!user) {
+    req.session.redirectTo = req.originalUrl;
     res.redirect("/login");
   }
-  const {lockerId,compartmentId} = req.params;
-  const locker = await Locker.findOne({lockerId : lockerId});
-  if(!locker){
+  const { lockerId, compartmentId } = req.params;
+  const locker = await Locker.findOne({ lockerId: lockerId });
+  if (!locker) {
     return res.send("LOCKER NOT FOUND");
   }
   let compartment;
   compartment = locker.compartments.find(
     (c) => c.compartmentId == compartmentId
   );
-  if(!compartment){
+  if (!compartment) {
     return res.send("COMPARTMENT NOT FOUND");
   }
 
-  if(compartment.isBooked){
-    const parcel = await Parcel2.findOne(
-  { lockerId: lockerId, compartmentId: compartmentId }
-)
-.sort({ createdAt: -1 });
-    if(!parcel ){
+  if (compartment.isBooked) {
+    const parcel = await Parcel2.findOne({
+      lockerId: lockerId,
+      compartmentId: compartmentId,
+    }).sort({ createdAt: -1 });
+    if (!parcel) {
       return res.send("PARCEL IS NOT FOUND");
+    } else if (
+      parcel.senderPhone != user.phone ||
+      parcel.receiverPhone != user.phone
+    ) {
+      return res.send(
+        "This parcel doesnt belong to you, TRY CONTACTING THE CUSTOMER SUPPORT"
+      );
+    } else if (parcel.status == "picked") {
+      return res.send("PARCEL ALREADY PICKED");
     }
-    else if(parcel.senderPhone != user.phone || parcel.receiverPhone != user.phone){
-      return res.send("This parcel doesnt belong to you, TRY CONTACTING THE CUSTOMER SUPPORT");
-    }
-    else if(parcel.status == "picked"){
-       return res.send("PARCEL ALREADY PICKED");
-    }
-    res.render("unlockComp",{parcel});
-
-  }else{
-     const candidateParcels = await Parcel2.find({  
+    res.render("unlockComp", { parcel });
+  } else {
+    const candidateParcels = await Parcel2.find({
       senderPhone: user.phone,
-      status: { $nin: ["picked", "expired","awaiting_payment","awaiting_pick"] }
+      status: {
+        $nin: ["picked", "expired", "awaiting_payment", "awaiting_pick"],
+      },
       // exclude finished
     }).sort({ createdAt: -1 });
-    if(candidateParcels.length === 0){
+    if (candidateParcels.length === 0) {
       req.session.redirectTo = req.originalUrl;
-      res.redirect(`/mobile/send/step2?size=${compartment.size}`)
+      res.redirect(`/mobile/send/step2?size=${compartment.size}`);
     }
-     return res.render("dropList", {
+    return res.render("dropList", {
       locker,
       compartment,
       parcels: candidateParcels,
-      user
+      user,
     });
-
   }
-
 });
 
 app.post("/unlock/:lockerId/:compartmentId/drop", async (req, res) => {
@@ -3366,10 +3361,13 @@ app.post("/unlock/:lockerId/:compartmentId/drop", async (req, res) => {
     const locker = await Locker.findOne({ lockerId });
     if (!locker) return res.status(404).send("LOCKER NOT FOUND");
 
-    const compartment = locker.compartments.find(c => String(c.compartmentId) === String(compartmentId));
+    const compartment = locker.compartments.find(
+      (c) => String(c.compartmentId) === String(compartmentId)
+    );
     if (!compartment) return res.status(404).send("COMPARTMENT NOT FOUND");
 
-    if (compartment.isBooked) return res.status(400).send("COMPARTMENT ALREADY BOOKED");
+    if (compartment.isBooked)
+      return res.status(400).send("COMPARTMENT ALREADY BOOKED");
 
     const parcel = await Parcel2.findById(parcelId);
     if (!parcel) return res.status(404).send("PARCEL NOT FOUND");
@@ -3381,22 +3379,22 @@ app.post("/unlock/:lockerId/:compartmentId/drop", async (req, res) => {
     const compSize = compartment.size;
     const parcelSize = parcel.size;
 
-let sizeCompatible = true;
+    let sizeCompatible = true;
 
-if (compSize && parcelSize) {
-  const sizeOrder = { small: 1, medium: 2, large: 3 }; // ranking
+    if (compSize && parcelSize) {
+      const sizeOrder = { small: 1, medium: 2, large: 3 }; // ranking
 
-  const compRank = sizeOrder[String(compSize).toLowerCase()];
-  const parcelRank = sizeOrder[String(parcelSize).toLowerCase()];
+      const compRank = sizeOrder[String(compSize).toLowerCase()];
+      const parcelRank = sizeOrder[String(parcelSize).toLowerCase()];
 
-  if (!compRank || !parcelRank) {
-    // unknown size labels → treat as not compatible
-    sizeCompatible = false;
-  } else {
-    // parcel must be <= compartment in size
-    sizeCompatible = parcelRank <= compRank;
-  }
-}
+      if (!compRank || !parcelRank) {
+        // unknown size labels → treat as not compatible
+        sizeCompatible = false;
+      } else {
+        // parcel must be <= compartment in size
+        sizeCompatible = parcelRank <= compRank;
+      }
+    }
     if (!sizeCompatible) {
       return res.status(400).send("Parcel does not fit this compartment");
     }
@@ -3409,33 +3407,30 @@ if (compSize && parcelSize) {
     parcel.status = "awaiting_pick";
     await parcel.save();
     await client.messages.create({
-  to: `whatsapp:+91${parcel.senderPhone}`,
-  from: 'whatsapp:+15558076515', // your approved Twilio number
-  contentSid: 'HX6d04d653952c1446f0f7489c408e42a8',
-  contentVariables: JSON.stringify({
-    1: parcel.sendName,
-    2: parcel.lockerId,
-    3: parcel.UsercompartmentId,
-    
-  })
-})
+      to: `whatsapp:+91${parcel.senderPhone}`,
+      from: "whatsapp:+15558076515", // your approved Twilio number
+      contentSid: "HX6d04d653952c1446f0f7489c408e42a8",
+      contentVariables: JSON.stringify({
+        1: parcel.sendName,
+        2: parcel.lockerId,
+        3: parcel.UsercompartmentId,
+      }),
+    });
     await client.messages.create({
-  to: `whatsapp:+91${parcel.senderPhone}`,
-  from: 'whatsapp:+15558076515', // your approved Twilio number
-  contentSid: 'HX6d04d653952c1446f0f7489c408e42a8',
-  contentVariables: JSON.stringify({
-    1: parcel.sendName,
-    2: parcel.lockerId,
-    3: parcel.UsercompartmentId,
-    
-  })
-})
+      to: `whatsapp:+91${parcel.senderPhone}`,
+      from: "whatsapp:+15558076515", // your approved Twilio number
+      contentSid: "HX6d04d653952c1446f0f7489c408e42a8",
+      contentVariables: JSON.stringify({
+        1: parcel.sendName,
+        2: parcel.lockerId,
+        3: parcel.UsercompartmentId,
+      }),
+    });
 
     // mark compartment booked & persist locker
     compartment.isBooked = true;
     compartment.isLocked = false;
     await locker.save();
-
 
     // render success or redirect to unlock post page
     return res.render("unlockPost", { parcel });
@@ -3444,11 +3439,6 @@ if (compSize && parcelSize) {
     return res.status(500).send("Internal Server Error");
   }
 });
-
-
-
-
-
 
 app.post("/unlock/:lockerId/:compartmentId", async (req, res) => {
   try {
@@ -3463,15 +3453,26 @@ app.post("/unlock/:lockerId/:compartmentId", async (req, res) => {
     const locker = await Locker.findOne({ lockerId });
     if (!locker) return res.status(404).send("LOCKER NOT FOUND");
 
-    const compartment = locker.compartments.find(c => String(c.compartmentId) === String(compartmentId));
+    const compartment = locker.compartments.find(
+      (c) => String(c.compartmentId) === String(compartmentId)
+    );
     if (!compartment) return res.status(404).send("COMPARTMENT NOT FOUND");
 
-    const parcel = await Parcel2.findOne({ lockerId, compartmentId }).sort({ createdAt: -1 });
+    const parcel = await Parcel2.findOne({ lockerId, compartmentId }).sort({
+      createdAt: -1,
+    });
     if (!parcel) return res.status(404).send("PARCEL NOT FOUND");
 
     // authorization (same as GET)
-    if (parcel.senderPhone !== user.phone && parcel.receiverPhone !== user.phone) {
-      return res.status(403).send("This parcel doesn't belong to you. TRY CONTACTING CUSTOMER SUPPORT");
+    if (
+      parcel.senderPhone !== user.phone &&
+      parcel.receiverPhone !== user.phone
+    ) {
+      return res
+        .status(403)
+        .send(
+          "This parcel doesn't belong to you. TRY CONTACTING CUSTOMER SUPPORT"
+        );
     }
 
     // business logic
@@ -3499,16 +3500,7 @@ app.post("/unlock/:lockerId/:compartmentId", async (req, res) => {
   }
 });
 
-
-
-
-
 const OTP_LENGTH = parseInt(process.env.OTP_LENGTH || "6", 10);
-
-
-
-
-
 
 ///// SMART PING VERIFICATION
 
@@ -3520,23 +3512,17 @@ function e164(mobile) {
   return null;
 }
 
-
-app.get('/otp/request', (req, res) => {
-  res.render('request', { title: 'Request OTP' });
+app.get("/otp/request", (req, res) => {
+  res.render("request", { title: "Request OTP" });
 });
-
-
-
 
 //// 1) REQUEST OTP
 
-
-
-
-app.post("/api/otp/request", async(req,res)=>{
-  try{
-    const {mobile} = req.body;
-    if(!mobile) return res.status(400).json({ok : false, message : "mobile required"});
+app.post("/api/otp/request", async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile)
+      return res.status(400).json({ ok: false, message: "mobile required" });
     const number = e164(mobile);
     const key = `otp${number}`;
 
@@ -3546,52 +3532,54 @@ app.post("/api/otp/request", async(req,res)=>{
 
     const otp = generateOtp(OTP_LENGTH);
 
-    storeOtp(key,otp);
+    storeOtp(key, otp);
     updateResendTimestamp(key);
 
-    const text = `Dear User, your Drop Point OTP is ${otp}. Use it within 5 minutes to access your locker safely. Drop Point Systems – Secure. Reliable. Smart.`
+    const text = `Dear User, your Drop Point OTP is ${otp}. Use it within 5 minutes to access your locker safely. Drop Point Systems – Secure. Reliable. Smart.`;
 
     let sendResult;
 
-    sendResult = await sendSMS(number,text);
+    sendResult = await sendSMS(number, text);
 
     if (!sendResult.success) {
       // log and return error; optionally increment failure counter, rollback store
       console.error("SMS send failed:", sendResult.error);
-      return res.status(502).json({ ok: false, message: "sms_send_failed", detail: sendResult.error });
+      return res
+        .status(502)
+        .json({
+          ok: false,
+          message: "sms_send_failed",
+          detail: sendResult.error,
+        });
     }
 
-     return res.json({ ok: true, message: "otp_sent" });
-  } catch(err){
-     console.error(err);
+    return res.json({ ok: true, message: "otp_sent" });
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({ ok: false, message: "internal_error" });
   }
- }
-);
-
-
-// Render OTP verify page
-app.get('/otp/verify', (req, res) => {
-  res.render('verifyS', { title: 'Verify OTP' });
 });
 
-
-
-
+// Render OTP verify page
+app.get("/otp/verify", (req, res) => {
+  res.render("verifyS", { title: "Verify OTP" });
+});
 
 /// 2) VERIFY OTP
 
 app.post("/api/otp/verify", async (req, res) => {
   try {
-
     const { mobile, otp } = req.body;
 
     if (!mobile || !otp) {
-      return res.status(400).json({ ok: false, message: "mobile and otp required" });
+      return res
+        .status(400)
+        .json({ ok: false, message: "mobile and otp required" });
     }
 
     const number = e164(mobile);
-    if (!number) return res.status(400).json({ ok: false, message: "invalid mobile" });
+    if (!number)
+      return res.status(400).json({ ok: false, message: "invalid mobile" });
 
     const key = `otp${number}`; // FIXED KEY TO MATCH STORE
 
@@ -3600,30 +3588,23 @@ app.post("/api/otp/verify", async (req, res) => {
     if (result.ok) {
       return res.json({ ok: true, message: "verified" });
     } else {
-      return res.status(400).json({ ok: false, message: "not_verified", reason: result.reason });
+      return res
+        .status(400)
+        .json({ ok: false, message: "not_verified", reason: result.reason });
     }
-
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, message: "internal_error" });
   }
 });
 
-
-
-
-
-
-
-
-
 ///// GIG FLOW
-app.get("/mobile/allocate",isAuthenticated,async(req,res)=>{
-     try {
-       const user = await User.findById(req.session.user._id).lean();
-      if (!user) return res.redirect("/login");
+app.get("/mobile/allocate", isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user._id).lean();
+    if (!user) return res.redirect("/login");
     if (!user.phone) {
-       req.session.pendingRedirectAfterPhoneLink = `/mobile/allocate`;
+      req.session.pendingRedirectAfterPhoneLink = `/mobile/allocate`;
       req.flash("error", "Please verify your phone number to continue.");
       return res.redirect("/mobile/link-phone");
     }
@@ -3652,36 +3633,40 @@ app.get("/mobile/allocate",isAuthenticated,async(req,res)=>{
   }
 });
 
+app.get(
+  "/mobile/allocate/select/:lockerId",
+  isAuthenticated,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.user._id);
+      if (!user) return res.redirect("/login");
+      const { lockerId } = req.params;
+      const locker = await Locker.findOne({ lockerId: lockerId }).lean();
+      if (!locker) {
+        req.flash("error", "Locker Not Found");
+        return res.redirect("/mobile/allocate");
+      }
 
-app.get("/mobile/allocate/select/:lockerId", isAuthenticated, async(req,res)=>{
-  try{
-        const user = await User.findById(req.session.user._id);
-    if (!user) return res.redirect("/login");
-    const {lockerId} = req.params;
-    const locker = await Locker.findOne({lockerId : lockerId}).lean();
-    if (!locker) {
-      req.flash("error", "Locker Not Found");
-      return res.redirect("/mobile/allocate");
+      const availableCompartments = locker.compartments.filter(
+        (c) => !c.isBooked || c.isOverstay
+      );
+      res.render("mobile/allocate-size", { locker, availableCompartments });
+    } catch (e) {
+      console.error("Error selecting locker:", e);
+      req.flash("error", "An error occurred. Please try again.");
+      res.redirect("/mobile/allocate");
     }
-
-    const availableCompartments = locker.compartments.filter(c => (!c.isBooked) || (c.isOverstay));
-    res.render("mobile/allocate-size",{locker,availableCompartments});  
-  }catch(e){
-    console.error("Error selecting locker:", e);
-    req.flash("error", "An error occurred. Please try again.");
-    res.redirect("/mobile/allocate");
   }
-})
+);
 
 function generatenewOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-
 app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
   try {
-        const user = await User.findById(req.session.user._id);
-        
+    const user = await User.findById(req.session.user._id);
+
     if (!user) return res.redirect("/login");
     const { lockerId, compartmentId } = req.body;
 
@@ -3693,11 +3678,11 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
     const locker = await Locker.findOne({ lockerId });
     if (!locker) {
       req.flash("error", "Locker not found");
-      return res.redirect("/mobile/allocate");  
+      return res.redirect("/mobile/allocate");
     }
 
     const compartment = locker.compartments.find(
-      c => c.compartmentId === compartmentId
+      (c) => c.compartmentId === compartmentId
     );
 
     if (!compartment || compartment.isBooked) {
@@ -3710,7 +3695,7 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
 
     // ⏱ OTP expiry (10 minutes)
     const freePeriod = new Date(Date.now() + 10 * 60 * 1000);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     // Save OTP on compartment
     compartment.bookingInfo.dropOtp = otp;
     compartment.bookingInfo.dropOtpExpiresAt = expiresAt;
@@ -3732,15 +3717,12 @@ app.post("/mobile/allocate/confirm", isAuthenticated, async (req, res) => {
       compartmentId,
       otp,
     });
-
   } catch (err) {
     console.error("OTP generation error:", err);
     req.flash("error", "Something went wrong");
     res.redirect("/mobile/allocate");
   }
 });
-
-
 
 //// IF OTP EXPIRED, DELETE BOOKING INFO
 
@@ -3750,7 +3732,7 @@ cron.schedule("*/10 * * * * *", async () => {
 
     const lockers = await Locker.find({
       "compartments.bookingInfo.dropOtpExpiresAt": { $lte: now },
-      "compartments.isBooked": true
+      "compartments.isBooked": true,
     });
 
     for (const locker of lockers) {
@@ -3759,11 +3741,7 @@ cron.schedule("*/10 * * * * *", async () => {
       locker.compartments.forEach((comp) => {
         const expiry = comp.bookingInfo?.dropOtpExpiresAt;
 
-        if (
-          comp.isBooked &&
-          expiry &&
-          new Date(expiry) <= now
-        ) {
+        if (comp.isBooked && expiry && new Date(expiry) <= now) {
           // 🔥 Clear booking
           comp.bookingInfo = {
             pickupOtpUsed: false,
@@ -3775,7 +3753,7 @@ cron.schedule("*/10 * * * * *", async () => {
             dropOtpUsed: false,
             recieverName: null,
             recieverPhone: null,
-            dropOtp: null
+            dropOtp: null,
           };
 
           comp.isBooked = false;
@@ -3797,17 +3775,10 @@ cron.schedule("*/10 * * * * *", async () => {
   }
 });
 
-
-
-
-
-
-
-
-
 //// NEW EXPIRY
 
 cron.schedule("*/1 * * * *", async () => {
+
   try {
     const now = new Date();
     const tenMinutesLater = new Date(now.getTime() + 10 * 60 * 1000);
@@ -3816,55 +3787,51 @@ cron.schedule("*/1 * * * *", async () => {
     const parcels = await Parcel2.find({
       status: "awaiting_pick",
       expiresAt: {
-  $gt: now,
-  $lte: tenMinutesLater
-},
-      "service.warnedBeforeExpiry": { $ne: true }
+        $gt: now,
+        $lte: tenMinutesLater,
+      },
+      "service.warnedBeforeExpiry": { $ne: true },
     }).select("_id receiverPhone expiresAt customId");
- // ⬅️ only what we need
+    // ⬅️ only what we need
 
     if (!parcels.length) return;
 
     // 2️⃣ Send notifications
     for (const parcel of parcels) {
-  //      const smsText2 = `Your locker service expires in 10 minutes. Extend now to avoid extra charges. Please extend your service by using this link:  parcel${parcel.customId}/extend - DROPPOINT`;
-  // const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
-  // console.log(sendResult2);
+      //      const smsText2 = `Your locker service expires in 10 minutes. Extend now to avoid extra charges. Please extend your service by using this link:  parcel${parcel.customId}/extend - DROPPOINT`;
+      // const sendResult2 = sendSMS(`91${parcel.senderPhone}`,smsText2);
+      // console.log(sendResult2);
       await client.messages.create({
-    to: `whatsapp:+91${parcel.receiverPhone}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HXc036d817795b127cb2cd86638d210b30',
-    contentVariables: JSON.stringify({
-     1: new Date(parcel.expiresAt).toLocaleTimeString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour: "2-digit",
-    minute: "2-digit"
-  }),
-      2: parcel.customId,
-      4: parcel.customId,
-      
-    }),
-  });
+        to: `whatsapp:+91${parcel.receiverPhone}`,
+        from: "whatsapp:+15558076515",
+        contentSid: "HXc036d817795b127cb2cd86638d210b30",
+        contentVariables: JSON.stringify({
+          1: new Date(parcel.expiresAt).toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          2: parcel.customId,
+          4: parcel.customId,
+        }),
+      });
     }
 
     // 3️⃣ Mark warned (NO VALIDATION, NO SAVE)
     await Parcel2.updateMany(
-      { _id: { $in: parcels.map(p => p._id) } },
+      { _id: { $in: parcels.map((p) => p._id) } },
       {
         $set: {
-          "service.warnedBeforeExpiry": true
-        }
+          "service.warnedBeforeExpiry": true,
+        },
       }
     );
 
     console.log(`[CRON] Sent expiry warning to ${parcels.length} parcels`);
-
   } catch (err) {
     console.error("[CRON] Expiry warning failed", err);
   }
 });
-
-
 
 /// EXTEND
 
@@ -3876,24 +3843,22 @@ app.get("/parcel/:id/extend", async (req, res) => {
       return res.status(404).send("Parcel not found");
     }
 
-    if(parcel.status === "expired"){
+    if (parcel.status === "expired") {
       return res.status(404).send("Parcel Expired");
     }
 
     // 🚫 Block extension if overstayed
-    
+
     // ✅ Allow extension
     res.render("extendParcel", {
       parcel,
-      razorpayKey: process.env.RAZORPAY_KEY_ID
+      razorpayKey: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
     console.error(err);
     res.status(500).send("Something went wrong");
   }
 });
-
-
 
 app.post("/api/parcel/extend/create-order", async (req, res) => {
   const { parcelId, hours, amount } = req.body;
@@ -3906,7 +3871,7 @@ app.post("/api/parcel/extend/create-order", async (req, res) => {
   const order = await razorpay.orders.create({
     amount: amount * 100,
     currency: "INR",
-    receipt: `extend_${parcel.customId}`
+    receipt: `extend_${parcel.customId}`,
   });
 
   res.json(order);
@@ -3919,7 +3884,7 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
       hours,
       razorpay_order_id,
       razorpay_payment_id,
-      razorpay_signature
+      razorpay_signature,
     } = req.body;
 
     // 🔐 Verify Razorpay signature
@@ -3930,22 +3895,22 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
       .digest("hex");
 
     if (expected !== razorpay_signature) {
-      return res.status(400).json({ success: false, message: "Invalid signature" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid signature" });
     }
 
     const parcel = await Parcel2.findById(parcelId);
     if (!parcel) {
-      return res.status(404).json({ success: false, message: "Parcel not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Parcel not found" });
     }
 
     // ⏱ Calculate new expiry
-    const base = parcel.expiresAt > new Date()
-      ? parcel.expiresAt
-      : new Date();
+    const base = parcel.expiresAt > new Date() ? parcel.expiresAt : new Date();
 
-    const newExpiry = new Date(
-      base.getTime() + hours * 60 * 60 * 1000
-    );
+    const newExpiry = new Date(base.getTime() + hours * 60 * 60 * 1000);
 
     // 1️⃣ Update parcel
     await Parcel2.updateOne(
@@ -3955,8 +3920,8 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
           expiresAt: newExpiry,
           status: "awaiting_pick",
           paymentStatus: "completed",
-          "service.warnedBeforeExpiry": false
-        }
+          "service.warnedBeforeExpiry": false,
+        },
       }
     );
 
@@ -3965,19 +3930,19 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
       await Locker.updateOne(
         {
           lockerId: parcel.lockerId,
-          "compartments.compartmentId": parcel.compartmentId
+          "compartments.compartmentId": parcel.compartmentId,
         },
         {
           $set: {
-            "compartments.$.isOverstay": false
-          }
+            "compartments.$.isOverstay": false,
+          },
         }
       );
     }
 
     // 📩 Notify user
     const expiresAtIST = newExpiry.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata"
+      timeZone: "Asia/Kolkata",
     });
 
     await client.messages.create({
@@ -3986,8 +3951,8 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
       contentSid: "HX326d48ba43c9f5722acc6a82a79c5ca0",
       contentVariables: JSON.stringify({
         1: expiresAtIST,
-        2: parcel.customId
-      })
+        2: parcel.customId,
+      }),
     });
 
     // ✅ Response
@@ -4000,18 +3965,14 @@ app.post("/api/parcel/extend/verify", async (req, res) => {
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-        hour12: true
-      })
+        hour12: true,
+      }),
     });
-
   } catch (err) {
     console.error("Extend verify error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
-
 
 //// MOVE TO OVERSTAY
 
@@ -4022,27 +3983,25 @@ cron.schedule("*/1 * * * *", async () => {
     const result = await Parcel2.updateMany(
       {
         status: "awaiting_pick",
-        expiresAt: { $lt: now }
+        expiresAt: { $lt: now },
       },
       {
         $set: {
           status: "overstay",
           "service.overstayStartedAt": now,
           "billing.isChargeable": true,
-          "billing.lastCalculatedAt": now
-        }
+          "billing.lastCalculatedAt": now,
+        },
       }
     );
 
     if (result.modifiedCount > 0) {
       console.log(`[CRON] Moved ${result.modifiedCount} parcels to overstay`);
     }
-
   } catch (err) {
     console.error("[CRON] Overstay transition failed", err);
   }
 });
-
 
 function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
   if (!expiresAt || !ratePerHour) {
@@ -4062,7 +4021,7 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
   let payableHours = 0;
 
   for (let hour = 1; hour <= totalHours; hour++) {
-    const cycleHour = (hour - 1) % 24 + 1; // 1 → 24
+    const cycleHour = ((hour - 1) % 24) + 1; // 1 → 24
 
     // First 10 hours of every 24h cycle are chargeable
     if (cycleHour <= 10) {
@@ -4072,12 +4031,9 @@ function calculateOverstayFromExpiry(expiresAt, ratePerHour) {
 
   return {
     hoursCharged: payableHours,
-    amount: payableHours * ratePerHour
+    amount: payableHours * ratePerHour,
   };
 }
-
-
-
 
 ///// CALCULATION
 
@@ -4108,10 +4064,10 @@ cron.schedule("*/2 * * * *", async () => {
             update: {
               $set: {
                 "billing.amountAccrued": amount,
-                "billing.lastCalculatedAt": now
-              }
-            }
-          }
+                "billing.lastCalculatedAt": now,
+              },
+            },
+          },
         });
       }
     }
@@ -4120,13 +4076,10 @@ cron.schedule("*/2 * * * *", async () => {
       await Parcel2.bulkWrite(bulkOps);
       console.log(`[CRON] Overstay recalculated: ${bulkOps.length}`);
     }
-
   } catch (err) {
     console.error("[CRON] Overstay billing failed", err);
   }
 });
-
-
 
 //// LOCKER COMPARTMETN VOERSTAY UPDATION
 
@@ -4136,31 +4089,30 @@ cron.schedule("*/1 * * * *", async () => {
     const overstayedParcels = await Parcel2.find({
       status: "overstay",
       lockerId: { $exists: true },
-      compartmentId: { $exists: true }
+      compartmentId: { $exists: true },
     }).select("lockerId compartmentId");
 
     if (!overstayedParcels.length) return;
 
     // 2️⃣ Update corresponding locker compartments
-for (const parcel of overstayedParcels) {
-  await Locker.updateOne(
-    {
-      lockerId: parcel.lockerId,
-      "compartments.compartmentId": parcel.compartmentId,
-      "compartments.isOverstay": false   // ✅ condition added
-    },
-    {
-      $set: {
-        "compartments.$.isOverstay": true
-      }
+    for (const parcel of overstayedParcels) {
+      await Locker.updateOne(
+        {
+          lockerId: parcel.lockerId,
+          "compartments.compartmentId": parcel.compartmentId,
+          "compartments.isOverstay": false, // ✅ condition added
+        },
+        {
+          $set: {
+            "compartments.$.isOverstay": true,
+          },
+        }
+      );
     }
-  );
-}
 
     console.log(
       `[LOCKER SYNC] Synced isOverstay for ${overstayedParcels.length} compartments`
     );
-
   } catch (err) {
     console.error("[LOCKER SYNC] Failed to sync locker overstays", err);
   }
@@ -4170,17 +4122,12 @@ for (const parcel of overstayedParcels) {
 
 
 
-
-
 /// NEW CREDITS WALLET NEW
 
 app.get("/wallet", isAuthenticated, async (req, res) => {
   const user = await User.findById(req.user._id);
-  res.render("wallet", { user,
-      razorpayKey: process.env.RAZORPAY_KEY_ID
-  });
+  res.render("wallet", { user, razorpayKey: process.env.RAZORPAY_KEY_ID });
 });
-
 
 app.post("/wallet/create-order", isAuthenticated, async (req, res) => {
   const { amount } = req.body;
@@ -4188,21 +4135,16 @@ app.post("/wallet/create-order", isAuthenticated, async (req, res) => {
   const order = await razorpay.orders.create({
     amount: amount * 100, // ₹ → paise
     currency: "INR",
-    receipt: `wallet_${Date.now()}`
+    receipt: `wallet_${Date.now()}`,
   });
 
   res.json(order);
 });
 
-
 // Verify Payment
 app.post("/wallet/verify", isAuthenticated, async (req, res) => {
-  const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    amount
-  } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } =
+    req.body;
 
   const sign = razorpay_order_id + "|" + razorpay_payment_id;
 
@@ -4223,12 +4165,6 @@ app.post("/wallet/verify", isAuthenticated, async (req, res) => {
   res.json({ success: true, balance: user.wallet.credits });
 });
 
-
-
-
-
-
-
 app.post("/wallet/add", isAuthenticated, async (req, res) => {
   const { amount } = req.body;
 
@@ -4243,11 +4179,9 @@ app.post("/wallet/add", isAuthenticated, async (req, res) => {
 
   res.json({
     success: true,
-    newBalance: user.wallet.credits
+    newBalance: user.wallet.credits,
   });
 });
-
-
 
 ////////////////// ===============================END OF PRODUCTION CODE================================================================
 // =------------------------------------------------CREDIT WALLET SECTION--------------------------------------------------\\
@@ -4260,7 +4194,7 @@ app.get("/:id/credits", isAuthenticated, async (req, res) => {
   } catch (err) {
     res.status(500).send("Server error");
   }
-}); 
+});
 
 // POST: Add credits
 app.post("/:id/credits/add", isAuthenticated, async (req, res) => {
@@ -4293,8 +4227,8 @@ app.get("/map", async (req, res) => {
   }
 });
 
-app.get("/location-select",isAuthenticated, async(req,res)=>{
-    try {
+app.get("/location-select", isAuthenticated, async (req, res) => {
+  try {
     const lockersRaw = await Locker.find({}).lean();
     const locationsRaw = await DropLocation.find({ status: "active" }).lean();
 
@@ -4324,7 +4258,6 @@ app.get("/location-select",isAuthenticated, async(req,res)=>{
           return res.status(500).send("Internal Server Error");
         }
 
-
         res.send(html);
       }
     );
@@ -4332,22 +4265,22 @@ app.get("/location-select",isAuthenticated, async(req,res)=>{
     console.error("Error loading locations:", err);
     res.status(500).send("Internal Server Error");
   }
-})
-
-
+});
 
 app.get("/send/step2", isAuthenticated, async (req, res) => {
   await FunnelEvent.create({
     sessionId: req.sessionID,
     userId: req.user?._id || null,
     step: "send_parcel_clicked",
-    timestamp: new Date()
+    timestamp: new Date(),
   });
-  const savedContacts = await Contact.find({ userId: req.user._id }).sort({ createdAt: -1 });
+  const savedContacts = await Contact.find({ userId: req.user._id }).sort({
+    createdAt: -1,
+  });
   const user = await User.findById(req.session.user._id);
   const size = req.query.size;
   const savedAddresses = await SavedAddress.find({ userId: req.user._id });
-  const isSelf = req.query.self === 'true';
+  const isSelf = req.query.self === "true";
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
   if (size) {
@@ -4372,11 +4305,11 @@ app.get("/send/step2", isAuthenticated, async (req, res) => {
 
   // 🆕 Fetch available lockers
   const lockers = await Locker.find({
-  "compartments.isBooked": false
-});
+    "compartments.isBooked": false,
+  });
 
   // Render with lockers
-  res.render("parcel/step2", { lockers, savedAddresses,savedContacts });
+  res.render("parcel/step2", { lockers, savedAddresses, savedContacts });
 });
 
 app.post("/send/step2", isAuthenticated, async (req, res) => {
@@ -4389,34 +4322,33 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     recipientPincode,
     selectedLocker,
     saveContact,
-    duration
-    
+    duration,
   } = req.body;
-   if (saveContact === 'true' && receiverName && receiverPhone) {
-  try {
-    // Check if contact already exists for this user
-    const existingContact = await Contact.findOne({
-      userId: req.user._id,
-      phone: receiverPhone.trim(),
-    });
-
-    if (!existingContact) {
-      const newContact = new Contact({
+  if (saveContact === "true" && receiverName && receiverPhone) {
+    try {
+      // Check if contact already exists for this user
+      const existingContact = await Contact.findOne({
         userId: req.user._id,
-        name: receiverName.trim(),
         phone: receiverPhone.trim(),
       });
-      await newContact.save();
-    } else {
-      console.log("Contact already exists. Skipping save.");
+
+      if (!existingContact) {
+        const newContact = new Contact({
+          userId: req.user._id,
+          name: receiverName.trim(),
+          phone: receiverPhone.trim(),
+        });
+        await newContact.save();
+      } else {
+        console.log("Contact already exists. Skipping save.");
+      }
+    } catch (err) {
+      console.error("Error saving contact:", err);
     }
-  } catch (err) {
-    console.error("Error saving contact:", err);
   }
-}
 
   const user = await User.findById(req.session.user._id);
-  
+
   if (!req.session.parcelDraft) req.session.parcelDraft = {};
 
   // Self Flow (Store for Myself)
@@ -4433,7 +4365,10 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     }
 
     if (!receiverDeliveryMethod) {
-      req.flash("error", "Please select how the receiver will receive the parcel.");
+      req.flash(
+        "error",
+        "Please select how the receiver will receive the parcel."
+      );
       return res.redirect("/send/step2");
     }
 
@@ -4447,57 +4382,57 @@ app.post("/send/step2", isAuthenticated, async (req, res) => {
     // 🔁 Extra logic for address delivery
     if (receiverDeliveryMethod === "address_delivery") {
       if (!recipientAddress || !recipientPincode || !selectedLocker) {
-        req.flash("error", "Please fill in recipient address, pincode, and select a dispatch locker.");
+        req.flash(
+          "error",
+          "Please fill in recipient address, pincode, and select a dispatch locker."
+        );
         return res.redirect("/send/step2");
-      }if (!selectedLocker || !mongoose.Types.ObjectId.isValid(selectedLocker)) {
-  req.flash("error", "Please select a valid locker for dispatch.");
-  return res.redirect("/send/step2");
-}
+      }
+      if (!selectedLocker || !mongoose.Types.ObjectId.isValid(selectedLocker)) {
+        req.flash("error", "Please select a valid locker for dispatch.");
+        return res.redirect("/send/step2");
+      }
       const locker = await Locker.findById(selectedLocker);
       const lockerPincode = locker?.location?.pincode || "";
       // Save address and locker info
       req.session.parcelDraft.recipientAddress = recipientAddress;
       req.session.parcelDraft.recipientPincode = recipientPincode;
       req.session.parcelDraft.selectedLocker = selectedLocker;
-      req.session.parcelDraft.selectedLockerPincode =lockerPincode;
+      req.session.parcelDraft.selectedLockerPincode = lockerPincode;
       if (receiverDeliveryMethod === "address_delivery") {
-  // Save address to DB (if not already saved)
-  
+        // Save address to DB (if not already saved)
 
-if (
-  req.body.saveAddress === "true" &&
-  req.body.recipientAddress &&
-  req.body.recipientPincode &&
-  req.body.receiverName
-) {
-  const alreadyExists = await SavedAddress.findOne({
-    userId: req.user._id,
-    address: req.body.recipientAddress.trim(),
-    pincode: req.body.recipientPincode.trim()
-  });
+        if (
+          req.body.saveAddress === "true" &&
+          req.body.recipientAddress &&
+          req.body.recipientPincode &&
+          req.body.receiverName
+        ) {
+          const alreadyExists = await SavedAddress.findOne({
+            userId: req.user._id,
+            address: req.body.recipientAddress.trim(),
+            pincode: req.body.recipientPincode.trim(),
+          });
 
-  if (!alreadyExists) {
-    await SavedAddress.create({
-      userId: req.user._id,
-      address: req.body.recipientAddress.trim(),
-      pincode: req.body.recipientPincode.trim(),
-      ownerName : req.body.receiverName,
-      label: "Saved on " + new Date().toLocaleDateString()
-    });
-  }
-}
-
-}
-
+          if (!alreadyExists) {
+            await SavedAddress.create({
+              userId: req.user._id,
+              address: req.body.recipientAddress.trim(),
+              pincode: req.body.recipientPincode.trim(),
+              ownerName: req.body.receiverName,
+              label: "Saved on " + new Date().toLocaleDateString(),
+            });
+          }
+        }
+      }
     }
   }
 
   if (receiverDeliveryMethod === "address_delivery") {
-  return res.redirect("/send/estimate");
-} else {
-  return res.redirect("/send/step3");
-}
-
+    return res.redirect("/send/estimate");
+  } else {
+    return res.redirect("/send/step3");
+  }
 });
 
 app.get("/send/estimate", isAuthenticated, async (req, res) => {
@@ -4516,39 +4451,41 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
     let token = generateShiprocketToken();
     // Prepare request to Shiprocket
     //const token  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY';
-    
+
     const headers = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-   const params = new URLSearchParams({
-    pickup_postcode: draft.selectedLockerPincode,
-    delivery_postcode: draft.recipientPincode,
-    weight: 1,
-    cod: 0
-  });
-    
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+    const params = new URLSearchParams({
+      pickup_postcode: draft.selectedLockerPincode,
+      delivery_postcode: draft.recipientPincode,
+      weight: 1,
+      cod: 0,
+    });
+
     const response = await axios.get(
       `https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params.toString()}`,
       { headers }
     );
-  
+
     let lockercost = getEstimatedCost(draft.size, draft.duration);
     const courierOptions = response.data.data.available_courier_companies;
-      const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
+    const bestOption = courierOptions.sort((a, b) => a.rate - b.rate)[0];
     if (!courierOptions || courierOptions.length === 0) {
-      req.flash("error", "No delivery service available for the selected address.");
+      req.flash(
+        "error",
+        "No delivery service available for the selected address."
+      );
       return res.redirect("/send/step2");
     }
-    
+
     // Show estimate page
     res.render("parcel/estimate", {
       courier: bestOption,
       courierOptions,
       lockercost,
-      totalCost: courierOptions.rate
+      totalCost: courierOptions.rate,
     });
-
   } catch (err) {
     console.error("❌ Error fetching estimate:", err);
     req.flash("error", "Error fetching delivery estimate.");
@@ -4556,10 +4493,8 @@ app.get("/send/estimate", isAuthenticated, async (req, res) => {
   }
 });
 
-
 app.get("/send/step3", isAuthenticated, async (req, res) => {
   try {
-     
     const { rate } = req.query;
     const draft = req.session.parcelDraft;
     console.log(rate);
@@ -4567,6 +4502,8 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const modifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
     let cost = getEstimatedCost(draft.size);
     if (draft.receiverDeliveryMethod === "address_delivery") {
       cost += parseFloat(rate); // Add delivery + platform fee
@@ -4574,9 +4511,13 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
 
     let qrImage;
     if (lockerId) {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, lockerId,prestatus }));
+      qrImage = await QRCode.toDataURL(
+        JSON.stringify({ accessCode, lockerId, prestatus })
+      );
     } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode,prestatus }));
+      qrImage = await QRCode.toDataURL(
+        JSON.stringify({ accessCode, prestatus })
+      );
     }
 
     let status = "awaiting_drop";
@@ -4608,18 +4549,17 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     }
 
     const parcel = new Parcel2({
-      
       ...draft,
       senderId: req.user._id,
       senderName: user.username,
       senderPhone: user.phone,
       receiverName: draft.receiverName,
       receiverPhone: draft.receiverPhone,
-       // Save address and locker info
-      recipientAddress : draft.recipientAddress,
-      recipientPincode : draft.recipientPincode,
-      selectedLocker : draft.selectedLocker,
-    selectedLockerPincode : draft.selectedLockerPincode,
+      // Save address and locker info
+      recipientAddress: draft.recipientAddress,
+      recipientPincode: draft.recipientPincode,
+      selectedLocker: draft.selectedLocker,
+      selectedLockerPincode: draft.selectedLockerPincode,
       accessCode,
       qrImage,
       lockerId: draft.lockerId || null,
@@ -4632,19 +4572,18 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
       razorpayOrderId: razorpayOrder?.id || null,
     });
     req.session.inProgressParcelId = parcel._id;
-   await parcel.save();
+    await parcel.save();
 
-
-// funnel log
-await FunnelEvent.create({
-  sessionId: req.sessionID,
-  step: 'step3_complete',
-  timestamp: new Date(),
-});
     // funnel log
     await FunnelEvent.create({
       sessionId: req.sessionID,
-      step: 'step3_complete',
+      step: "step3_complete",
+      timestamp: new Date(),
+    });
+    // funnel log
+    await FunnelEvent.create({
+      sessionId: req.sessionID,
+      step: "step3_complete",
       timestamp: new Date(),
     });
     delete req.session.inProgressParcelId;
@@ -4656,7 +4595,6 @@ await FunnelEvent.create({
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
     });
-
   } catch (error) {
     console.error("❌ Error in /mobile/send/step3:", error);
     req.flash("error", "Something went wrong. Please try again.");
@@ -4664,30 +4602,31 @@ await FunnelEvent.create({
   }
 });
 
-app.get("/parcel/:id/modify",async(req,res)=>{
-    const parcel = await Parcel2.findById(req.params.id).lean();
+app.get("/parcel/:id/modify", async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id).lean();
   const parcelLocker = parcel.lockerId || "";
   const accessCode = parcel.accessCode;
-  const modifystatus = "modify"
+  const modifystatus = "modify";
   let qrImage;
-    if (parcelLocker != "") {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode, parcelLocker, modifystatus }));
-    } else {
-      qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
-    }
+  if (parcelLocker != "") {
+    qrImage = await QRCode.toDataURL(
+      JSON.stringify({ accessCode, parcelLocker, modifystatus })
+    );
+  } else {
+    qrImage = await QRCode.toDataURL(JSON.stringify({ accessCode }));
+  }
   if (!parcel) return res.status(404).send("Parcel not found");
   if (!parcel.qrImage)
     return res.status(400).send("No QR code saved for this parcel");
-  res.render("qrPage", { parcel,qrImage });
-})
-
-
+  res.render("qrPage", { parcel, qrImage });
+});
 
 app.get("/payment/success", isAuthenticated, async (req, res) => {
   const { order_id, payment_id, signature } = req.query;
 
   // Verify signature
-  const generatedSignature = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+  const generatedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
     .update(order_id + "|" + payment_id)
     .digest("hex");
 
@@ -4701,7 +4640,7 @@ app.get("/payment/success", isAuthenticated, async (req, res) => {
     { razorpayOrderId: order_id },
     {
       paymentStatus: "completed",
-      status: "awaiting_drop"
+      status: "awaiting_drop",
     },
     { new: true }
   );
@@ -4710,29 +4649,19 @@ app.get("/payment/success", isAuthenticated, async (req, res) => {
     req.flash("error", "Parcel not found.");
     return res.redirect("/dashboard");
   }
-await SessionIntent.findOneAndUpdate(
-  { sessionId: req.sessionID, completed: false },
-  { completed: true, endedAt: new Date() }
-);
+  await SessionIntent.findOneAndUpdate(
+    { sessionId: req.sessionID, completed: false },
+    { completed: true, endedAt: new Date() }
+  );
   await FunnelEvent.create({
     sessionId: req.sessionID,
     userId: req.user?._id || null,
     step: "send_parcel_submitted",
-    timestamp: new Date()
+    timestamp: new Date(),
   });
   delete req.session.parcelDraft;
   res.redirect(`/parcel/${parcel._id}/success`);
 });
-
-
-
-
-
-
-
-
-
-
 
 function getEstimatedCost(size, duration) {
   const hours = Number(duration); // convert string → number
@@ -4753,24 +4682,21 @@ app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
     return res.redirect("/dashboard");
   }
 
-  const {
-    fromPincode,
-    toPincode,
-    parcelWeight,
-    parcelSize
-  } = moveDetails;
+  const { fromPincode, toPincode, parcelWeight, parcelSize } = moveDetails;
 
   const sizeMap = {
     small: { length: 10, breadth: 10, height: 10 },
     medium: { length: 20, breadth: 15, height: 15 },
-    large: { length: 30, breadth: 20, height: 20 }
+    large: { length: 30, breadth: 20, height: 20 },
   };
 
   const { length, breadth, height } = sizeMap[parcelSize] || sizeMap.small;
 
   try {
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY'
-    const { data } = await axios.post("https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
+    const token =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY";
+    const { data } = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
       {
         pickup_postcode: fromPincode,
         delivery_postcode: toPincode,
@@ -4778,12 +4704,12 @@ app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
         weight: parcelWeight,
         length,
         breadth,
-        height
+        height,
       },
       {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       }
     );
 
@@ -4792,7 +4718,7 @@ app.get("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
       parcel,
       deliveryOptions: data.data,
       fromPincode,
-      toPincode
+      toPincode,
     });
   } catch (err) {
     console.error("Shiprocket API error:", err?.response?.data || err.message);
@@ -4810,7 +4736,7 @@ app.post("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
   await Parcel2.findByIdAndUpdate(req.params.id, {
     status: "in_transit",
     deliveryPartner: courier_code,
-    destinationLockerId: moveDetails.newLockerId
+    destinationLockerId: moveDetails.newLockerId,
   });
 
   // Optional: create a record in CourierMovement table
@@ -4818,21 +4744,6 @@ app.post("/parcel/:id/move/confirm", isAuthenticated, async (req, res) => {
   req.flash("success", "Move initiated. Parcel marked in transit.");
   res.redirect("/dashboard");
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 app.get("/api/couriers", async (req, res) => {
   const couriers = [
@@ -4842,7 +4753,6 @@ app.get("/api/couriers", async (req, res) => {
   ];
   res.json(couriers);
 });
-
 
 // GET /services
 app.get("/services", isAuthenticated, async (req, res) => {
@@ -4855,10 +4765,8 @@ app.get("/services", isAuthenticated, async (req, res) => {
 
   const lockers = await Locker.find();
 
-  res.render("services", { parcels, lockers,  activePage: "services" });
+  res.render("services", { parcels, lockers, activePage: "services" });
 });
-
-
 
 app.get("/services/transfer", isAuthenticated, async (req, res) => {
   const userId = req.session.user._id;
@@ -4871,44 +4779,35 @@ app.get("/services/transfer", isAuthenticated, async (req, res) => {
   res.render("transferList", { parcels });
 });
 
-
-
-
-
 // utils/shiprocket.js
 
 require("dotenv").config();
 
 async function generateShiprocketToken() {
   try {
-    const response = await axios.post("https://apiv2.shiprocket.in/v1/external/auth/login", {
-      email:"vivekkaushik2005@gmail.com",
-      password: "V%qc$cw&V!WZ2CC4deD^x5OWmQtaFQ*3",
-    });
+    const response = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/auth/login",
+      {
+        email: "vivekkaushik2005@gmail.com",
+        password: "V%qc$cw&V!WZ2CC4deD^x5OWmQtaFQ*3",
+      }
+    );
 
     const token = response.data.token;
-   
+
     return token;
   } catch (err) {
-    console.error("❌ Failed to generate Shiprocket token:", err.response?.data || err.message);
+    console.error(
+      "❌ Failed to generate Shiprocket token:",
+      err.response?.data || err.message
+    );
     return null;
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 async function getShippingRates(fromPin, toPin, weight) {
-   const token = " eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY"
+  const token =
+    " eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjcyODMwMzksInNvdXJjZSI6InNyLWF1dGgtaW50IiwiZXhwIjoxNzU0MTUwODA1LCJqdGkiOiJvc1R3VFNWWFQ4YnNObG9GIiwiaWF0IjoxNzUzMjg2ODA1LCJpc3MiOiJodHRwczovL3NyLWF1dGguc2hpcHJvY2tldC5pbi9hdXRob3JpemUvdXNlciIsIm5iZiI6MTc1MzI4NjgwNSwiY2lkIjo3MDUxNjYyLCJ0YyI6MzYwLCJ2ZXJib3NlIjpmYWxzZSwidmVuZG9yX2lkIjowLCJ2ZW5kb3JfY29kZSI6IiJ9.kds27l6abl8baauEq4PvpbtVXHUmUFkw7FBsjZ8ZYsY";
   if (!token) return null;
 
   const headers = {
@@ -4916,44 +4815,27 @@ async function getShippingRates(fromPin, toPin, weight) {
     Authorization: `Bearer ${token}`,
   };
 
-    const params = new URLSearchParams({
+  const params = new URLSearchParams({
     pickup_postcode: fromPin,
     delivery_postcode: toPin,
     weight: weight,
-    cod: 0
+    cod: 0,
   });
 
-   try {
+  try {
     const res = await axios.get(
       `https://apiv2.shiprocket.in/v1/external/courier/serviceability?${params.toString()}`,
       { headers }
     );
     return res.data;
   } catch (err) {
-    console.error("❌ Error fetching Shiprocket rates:", err.response?.data || err.message);
+    console.error(
+      "❌ Error fetching Shiprocket rates:",
+      err.response?.data || err.message
+    );
     return null;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 app.get("/parcel/:id/move", isAuthenticated, async (req, res) => {
   const parcelId = req.params.id;
@@ -4984,34 +4866,34 @@ app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
   // Estimate cost
   try {
     const response = await getShippingRates(
-  oldLocker.location.pincode,
-  newLocker.location.pincode,
-  parcel.size === "small" ? 0.5 : parcel.size === "medium" ? 1.5 : 3
-);
+      oldLocker.location.pincode,
+      newLocker.location.pincode,
+      parcel.size === "small" ? 0.5 : parcel.size === "medium" ? 1.5 : 3
+    );
 
-if (!response || !response.data || !response.data.available_courier_companies) {
-  req.flash("error", "Could not fetch courier options. Please try again.");
-  return res.redirect("/dashboard");
-}
-let courierOptions = response.data.available_courier_companies;
-courierOptions.sort((a, b) => a.rate - b.rate);
+    if (
+      !response ||
+      !response.data ||
+      !response.data.available_courier_companies
+    ) {
+      req.flash("error", "Could not fetch courier options. Please try again.");
+      return res.redirect("/dashboard");
+    }
+    let courierOptions = response.data.available_courier_companies;
+    courierOptions.sort((a, b) => a.rate - b.rate);
 
-res.render("parcel/select-courier", {
-  parcel,
-  courierOptions,
-  fromLocker: oldLocker,
-  toLocker: newLocker
-});
-
-
-
+    res.render("parcel/select-courier", {
+      parcel,
+      courierOptions,
+      fromLocker: oldLocker,
+      toLocker: newLocker,
+    });
   } catch (err) {
     console.error("Error fetching Shiprocket rates:", err.message);
     req.flash("error", err.message);
     res.redirect("/dashboard");
   }
 });
-
 
 app.post("/parcel/:id/confirm-move", isAuthenticated, async (req, res) => {
   const { newLockerId, courierIndex } = req.body;
@@ -5036,14 +4918,14 @@ app.post("/parcel/:id/confirm-move", isAuthenticated, async (req, res) => {
     rate,
     etd: eta,
   };
-  
+
   await parcel.save();
 
   // Send WhatsApp
   await client.messages.create({
     to: `whatsapp:+91${parcel.receiverPhone}`,
-    from: 'whatsapp:+15558076515',
-    contentSid: 'HX3a4f9ef7ea9e8469c8811204abc8599b',
+    from: "whatsapp:+15558076515",
+    contentSid: "HX3a4f9ef7ea9e8469c8811204abc8599b",
     contentVariables: JSON.stringify({
       1: parcel.receiverName,
       2: parcel.senderName,
@@ -5057,20 +4939,13 @@ app.post("/parcel/:id/confirm-move", isAuthenticated, async (req, res) => {
   res.redirect("/dashboard");
 });
 
-
-
-
-
-
-
-
 app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
   const parcelId = req.params.id;
   const { newLockerId } = req.body;
 
   const parcel = await Parcel2.findById(parcelId);
   const newLocker = await Locker.findOne({ lockerId: newLockerId });
- const lockerAddress = locker?.location?.address;
+  const lockerAddress = locker?.location?.address;
   if (!parcel || !newLocker) {
     req.flash("error", "Invalid parcel or locker.");
     return res.redirect("/services/transfer");
@@ -5081,43 +4956,27 @@ app.post("/parcel/:id/move", isAuthenticated, async (req, res) => {
   parcel.transitInfo = {
     fromLockerId: parcel.lockerId,
     toLockerId: newLockerId,
-    startedAt: new Date()
+    startedAt: new Date(),
   };
   await parcel.save();
 
- // Optional: Notify receiver via WhatsApp that it is on the way
+  // Optional: Notify receiver via WhatsApp that it is on the way
   await client.messages.create({
-  to: `whatsapp:+91${parcel.receiverPhone}`,
-  from: 'whatsapp:+15558076515', // your approved Twilio number
-  contentSid: 'HX62901ad08f763acb2e42347ce24e529a',
-  contentVariables: JSON.stringify({
-    1: parcel.receiverName,
-    2: parcel.senderName,
-    3: parcel.type || "Package",
-    4: newLocker.location.address,  // replace with locker address
-    5: "Today by 6 PM" // ETA or calculated estimate
-  }),
-});
+    to: `whatsapp:+91${parcel.receiverPhone}`,
+    from: "whatsapp:+15558076515", // your approved Twilio number
+    contentSid: "HX62901ad08f763acb2e42347ce24e529a",
+    contentVariables: JSON.stringify({
+      1: parcel.receiverName,
+      2: parcel.senderName,
+      3: parcel.type || "Package",
+      4: newLocker.location.address, // replace with locker address
+      5: "Today by 6 PM", // ETA or calculated estimate
+    }),
+  });
 
   req.flash("success", "Parcel marked as in transit.");
   res.redirect("/dashboard");
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
   const lockerId = req.params.lockerId;
@@ -5131,7 +4990,6 @@ app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
   res.render("parcel/select-size", { locker });
 });
 
-
 app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
   const lockerId = req.params.lockerId;
   const size = req.body.size;
@@ -5143,7 +5001,7 @@ app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
     return res.redirect("/locations");
   }
 
-  req.session.parcelDraft = { 
+  req.session.parcelDraft = {
     isSelf: true,
     type: "package",
     size: size,
@@ -5154,16 +5012,11 @@ app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
     lockerLng: locker.location?.lng,
     description: "Stored via locker catalog",
     receiverName: req.user.username,
-    receiverPhone: req.user.phone
+    receiverPhone: req.user.phone,
   };
 
   res.redirect("/send/step3");
 });
-
-
-
-
-
 
 // app.get("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
 //   const lockerId = req.params.lockerId;
@@ -5191,31 +5044,30 @@ app.post("/send/select-locker/:lockerId", isAuthenticated, async (req, res) => {
 
 //   res.redirect("/send/step3");
 // });
-const UserAction = require('./models/userAction.js');
+const UserAction = require("./models/userAction.js");
 
 app.post("/analytics/user-action", async (req, res) => {
   const { step, method, path } = req.body;
-  try{
-  await UserAction.create({
-    step,
-    method,
-    path,
-    sessionId: req.sessionID,
-    userId: req.session?.user?._id || null
-  });
-} catch(err){
-  console.log(err);
-}
+  try {
+    await UserAction.create({
+      step,
+      method,
+      path,
+      sessionId: req.sessionID,
+      userId: req.session?.user?._id || null,
+    });
+  } catch (err) {
+    console.log(err);
+  }
   res.sendStatus(200);
 });
 app.get("/parcel/my-awaiting-drop", isAuthenticated, async (req, res) => {
   const parcels = await Parcel2.find({
     senderId: req.user._id,
-    status: "awaiting_drop"
+    status: "awaiting_drop",
   });
   res.render("parcel/my-awaiting-drop", { parcels });
 });
-
 
 // Show form to reassign parcel
 app.get("/parcel/:id/transfer", isAuthenticated, async (req, res) => {
@@ -5253,8 +5105,6 @@ app.post("/parcel/:id/transfer", isAuthenticated, async (req, res) => {
   res.redirect("/dashboard");
 });
 
-
-
 app.get("/action_funnel", async (req, res) => {
   const now = new Date();
 
@@ -5269,12 +5119,12 @@ app.get("/action_funnel", async (req, res) => {
   const [todayRaw, yesterdayRaw] = await Promise.all([
     UserAction.aggregate([
       { $match: { timestamp: { $gte: todayStart, $lt: todayEnd } } },
-      { $group: { _id: "$step", count: { $sum: 1 } } }
+      { $group: { _id: "$step", count: { $sum: 1 } } },
     ]),
     UserAction.aggregate([
       { $match: { timestamp: { $gte: yesterdayStart, $lt: yesterdayEnd } } },
-      { $group: { _id: "$step", count: { $sum: 1 } } }
-    ])
+      { $group: { _id: "$step", count: { $sum: 1 } } },
+    ]),
   ]);
 
   const combineSteps = (raw) => {
@@ -5286,7 +5136,7 @@ app.get("/action_funnel", async (req, res) => {
       payment_stage: 0,
       payment_completed: 0,
       parcel_booked: 0,
-      abandoned_login: 0
+      abandoned_login: 0,
     };
 
     let loginPage = 0;
@@ -5319,23 +5169,17 @@ app.get("/action_funnel", async (req, res) => {
     "send_step_2",
     "payment_stage",
     "payment_completed",
-    "parcel_booked"
+    "parcel_booked",
   ];
 
-  const funnel = steps.map(step => ({
+  const funnel = steps.map((step) => ({
     step,
     today: todayData[step] || 0,
-    yesterday: yesterdayData[step] || 0
+    yesterday: yesterdayData[step] || 0,
   }));
 
   res.render("funnelAction", { funnel });
 });
-
-
-
-
-
-
 
 app.get("/receiver/:parcelId/update-address", async (req, res) => {
   const parcel = await Parcel2.findById(req.params.parcelId);
@@ -5352,47 +5196,46 @@ app.post("/receiver/:parcelId/update-address", async (req, res) => {
     receiverName,
     receiverPhone,
     "transitInfo.recipientAddress": deliveryAddress,
-    status: "awaiting_pick"
+    status: "awaiting_pick",
   });
 
   res.render("receiver/success", {
-    message: "Your address has been updated. Your parcel will be dispatched shortly."
+    message:
+      "Your address has been updated. Your parcel will be dispatched shortly.",
   });
 });
 
 app.get("/parcel/view/:id/success", async (req, res) => {
-    const parcelid = req.params.id;
+  const parcelid = req.params.id;
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
   res.render("parcel/successView", { parcel });
 });
-app.get("/:id/qrpage",async(req,res)=>{
-  const parcel = await Parcel2.findById(req.params.id);
-   if (!parcel) return res.status(404).send("Parcel not found");
-    res.render("parcel/success", { parcel });
-
-})
-app.get("/parcel/:id/success", async (req, res) => {
-    const user = await User.findById(req.session.user._id);
-    const parcelid = req.params.id;
+app.get("/:id/qrpage", async (req, res) => {
   const parcel = await Parcel2.findById(req.params.id);
   if (!parcel) return res.status(404).send("Parcel not found");
-     await client.messages.create({
-  to: `whatsapp:+91${user.phone}`,
-  from: 'whatsapp:+15558076515',
-  contentSid: 'HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c', 
-  contentVariables: JSON.stringify({
-  1: `${user.username}`, // Sender name
-  2: `${parcelid}/qrpage` // Parcel ID
-})// Template SID
-}).then(message => console.log('✅ WhatsApp Message Sent:', message.sid))
-.catch(error => console.error('❌ WhatsApp Message Error:', error));
-
+  res.render("parcel/success", { parcel });
+});
+app.get("/parcel/:id/success", async (req, res) => {
+  const user = await User.findById(req.session.user._id);
+  const parcelid = req.params.id;
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.status(404).send("Parcel not found");
+  await client.messages
+    .create({
+      to: `whatsapp:+91${user.phone}`,
+      from: "whatsapp:+15558076515",
+      contentSid: "HX8dc7a5b23a3a6a2a7ce8a4d2e577ac3c",
+      contentVariables: JSON.stringify({
+        1: `${user.username}`, // Sender name
+        2: `${parcelid}/qrpage`, // Parcel ID
+      }), // Template SID
+    })
+    .then((message) => console.log("✅ WhatsApp Message Sent:", message.sid))
+    .catch((error) => console.error("❌ WhatsApp Message Error:", error));
 
   res.render("parcel/success", { parcel });
 });
-
-
 
 app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
   const parcel = await Parcel1.findById(req.params.id);
@@ -5467,7 +5310,7 @@ app.post("/api/locker/scan", async (req, res) => {
     }
 
     // Lock the compartment
-    
+
     compartment.isBooked = true;
     compartment.currentParcelId = parcel._id;
     await locker.save();
@@ -5496,8 +5339,6 @@ app.post("/api/locker/scan", async (req, res) => {
       pickedUpAt: parcel.pickedUpAt,
       droppedAt: parcel.droppedAt,
     });
-
-    
 
     return res.json({
       success: true,
@@ -5545,7 +5386,6 @@ app.post("/api/locker/scan", async (req, res) => {
         .json({ success: false, message: "Compartment not found." });
     }
 
-
     // Unlock compartment
     compartment.isLocked = false;
     compartment.isBooked = false;
@@ -5585,10 +5425,10 @@ app.get("/admin/analytics/funnel", async (req, res) => {
   const counts = {
     send: { total: 0, completed: 0 },
     receive: { total: 0, completed: 0 },
-    explore: { total: 0, completed: 0 }
+    explore: { total: 0, completed: 0 },
   };
 
-  sessions.forEach(s => {
+  sessions.forEach((s) => {
     counts[s.intent].total += 1;
     if (s.completed) counts[s.intent].completed += 1;
   });
@@ -5623,7 +5463,6 @@ app.get("/drop/:accessCode", isAuthenticated, async (req, res) => {
   parcel.droppedAt = new Date();
   await parcel.save();
 
-  
   locker.status = "occupied";
   await locker.save();
 
@@ -5846,11 +5685,11 @@ app.get("/parcel/:id/success", isAuthenticated, async (req, res) => {
 
 app.get("/history", isAuthenticated, async (req, res) => {
   try {
-    const user  = await User.find({ _id : req.user._id})
-    const parcels = await Parcel2.find({ senderName : user.username  })
+    const user = await User.find({ _id: req.user._id });
+    const parcels = await Parcel2.find({ senderName: user.username })
       .sort({ createdAt: -1 })
       .populate("location_id")
-      .populate("lockerId");  
+      .populate("lockerId");
 
     res.render("parcel/history", { parcels });
   } catch (err) {
@@ -6181,7 +6020,7 @@ app.get("/incomingdetails/:id", isAuthenticated, async (req, res) => {
   try {
     const parcel = await Parcel2.findById(id);
     const username = parcel.senderName;
-    const user = await User.findOne({username : username});
+    const user = await User.findOne({ username: username });
     if (!parcel) {
       return res.status(404).render("errorpage", {
         errorMessage: "Parcel not found.",
@@ -6260,12 +6099,10 @@ app.post("/api/nearest-locker", async (req, res) => {
     });
 
     if (!nearestLocker) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "No lockers with valid location data",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "No lockers with valid location data",
+      });
     }
 
     return res.json({
@@ -6589,7 +6426,8 @@ app.post("/user/dropoff", async (req, res) => {
     if (!locker) return res.status(404).send("Locker not found");
 
     const compartment = locker.compartments.find(
-      (c) =>  c.compartmentId === compartmentId &&
+      (c) =>
+        c.compartmentId === compartmentId &&
         c.bookingInfo?.userId?.toString() === userId.toString()
     );
 
@@ -6651,7 +6489,7 @@ app.post("/user/dropoff", async (req, res) => {
     console.log(
       `📦 Parcel dropped in Locker ${lockerId}, Compartment ${compartmentId} by ${user.username} \n OTP : ${otp}, Click Here to unlock via QR : ${smsLink}`
     );
-    ("SMS sent:", message.sid);
+    "SMS sent:", message.sid;
 
     req.flash("success", "Compartment Unlocked, drop your parcel!!");
     res.redirect("/user/dropoff");
@@ -6660,8 +6498,6 @@ app.post("/user/dropoff", async (req, res) => {
     res.status(500).send("Something went wrong");
   }
 });
-
-
 
 // ------------------------------------------------- ADMIN ROUTES ---------------------------------------------------------
 
@@ -6706,9 +6542,7 @@ app.post("/admin/login", async (req, res) => {
   res.redirect("/admin/dashboard");
 });
 
-app.get("/admin/analytics",isAdmin, async(req,res)=>{
-
-})
+app.get("/admin/analytics", isAdmin, async (req, res) => {});
 app.get("/admin/dashboard", isAdmin, async (req, res) => {
   try {
     const user = await User.findOne({ role: "admin" });
@@ -6882,49 +6716,12 @@ app.post("/locker/cancel", isAuthenticated, async (req, res) => {
   }
 });
 
-
 // Admin Logout
 app.get("/admin/logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/admin/login");
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ---------------------------------------------------- TECHNICIAN ROUTES ------------------------------------------------------
 
@@ -6949,16 +6746,7 @@ app.get("/technician/dashboard", async (req, res) => {
 
 // -------------------------------------------BACKEND MISCELLANEOUS ROUTES-----------------------------------------------------------
 
-
-
-
-
-
-
-
-
 // API FOR 3P SERVICES
-
 
 const Partner = require("./models/partnerSchema.js");
 
@@ -6967,7 +6755,6 @@ function generateApiKey(partnerName) {
   return `dp_live_${partnerName.toLowerCase()}_${random}`;
 }
 
-
 app.post("/admin/create-partner", async (req, res) => {
   const { name } = req.body;
 
@@ -6975,15 +6762,15 @@ app.post("/admin/create-partner", async (req, res) => {
 
   const partner = await Partner.create({
     name,
-    apiKey
+    apiKey,
   });
 
   res.json({
     success: true,
     partner: {
       name: partner.name,
-      apiKey: partner.apiKey
-    }
+      apiKey: partner.apiKey,
+    },
   });
 });
 
@@ -6992,7 +6779,9 @@ async function partnerAuth(req, res, next) {
     const auth = req.headers.authorization;
 
     if (!auth || !auth.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, message: "Missing API key" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Missing API key" });
     }
 
     const apiKey = auth.split(" ")[1];
@@ -7000,26 +6789,23 @@ async function partnerAuth(req, res, next) {
     const partner = await Partner.findOne({ apiKey, isActive: true });
 
     if (!partner) {
-      return res.status(401).json({ success: false, message: "Invalid API key" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid API key" });
     }
 
     req.partner = partner; // attach partner info to request
     next();
-
   } catch (err) {
     return res.status(500).json({ success: false, message: "Auth error" });
   }
 }
 
-
 const DeliveryAgent = require("./models/deliveryAgent");
-
-
 
 function generateAccessCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
 
 app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
   try {
@@ -7034,7 +6820,7 @@ app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
 
     // Check if agent already exists for this partner
     const existing = await DeliveryAgent.findOne({
-      phone
+      phone,
     });
 
     if (existing) {
@@ -7061,26 +6847,26 @@ app.post("/api/partner/create-agent", partnerAuth, async (req, res) => {
       accessCode,
     });
 
-//     // 📲 Send SMS / WhatsApp
- await sendWhatsApp(phone, 
-`📦 DropPoint Access Created
+    //     // 📲 Send SMS / WhatsApp
+//     await sendWhatsApp(
+//       phone,
+//       `📦 DropPoint Access Created
 
-Hello ${name},
-Your DropPoint locker access code is:
+// Hello ${name},
+// Your DropPoint locker access code is:
 
-🔐 ${accessCode}
+// 🔐 ${accessCode}
 
-Use this code at any DropPoint locker to drop parcels.
+// Use this code at any DropPoint locker to drop parcels.
 
-— Team DropPoint`
-    );
+// — Team DropPoint`
+//     );
 
     res.json({
       success: true,
       message: `Delivery agent created and access code sent. ACCESS CODE : ${accessCode}`,
       agentId: agent._id,
     });
-
   } catch (err) {
     console.error("Create agent error:", err);
     res.status(500).json({
@@ -7090,18 +6876,9 @@ Use this code at any DropPoint locker to drop parcels.
   }
 });
 
-
-
-
-
-
-
 app.use((req, res, next) => {
   res.status(404).render("errorpage", { errorMessage: "Page Not Found (404)" });
 });
-
-
-
 
 // -------------------------------------------Error-handling middleware------------------------------------------------------
 app.use((err, req, res, next) => {
