@@ -2244,6 +2244,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
     const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const modifyCode = Math.floor(100000 + Math.random() * 900000).toString();
     console.log(draft.duration);
     let cost = getEstimatedCost(draft.size, draft.duration);
     if (draft.receiverDeliveryMethod === "address_delivery") {
@@ -2328,6 +2329,7 @@ app.get("/mobile/send/step3", isAuthenticated, async (req, res) => {
       selectedLocker: draft.selectedLocker,
       selectedLockerPincode: draft.selectedLockerPincode,
       accessCode,
+      modifyCode,
       qrImage,
       lockerLat: draft.lockerLat,
       lockerLng: draft.lockerLng,
@@ -4119,6 +4121,50 @@ cron.schedule("*/1 * * * *", async () => {
 });
 
 
+/// MODIFY
+app.get('/mobile/parcel/:id/modify', isAuthenticated, async (req, res) => {
+  try {
+    const customId = req.params.id;
+
+    const parcel = await Parcel2.findOne({ customId });
+
+    if (!parcel) {
+      return res.status(404).send("Parcel not found");
+    }
+
+    // 🔒 Security: allow modify only if valid
+    if (
+      parcel.status !== "awaiting_pick" ||
+      new Date(parcel.expiresAt) <= new Date()
+    ) {
+      return res.status(403).send("Modification window expired or not allowed");
+    }
+
+    // 🔁 Generate NEW modify code every time
+    const modifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save it
+    parcel.modifyCode = modifyCode;
+    await parcel.save();
+
+    // Generate QR
+    const qrImage = await QRCode.toDataURL(modifyCode);
+
+    res.render("mobile/modifyPage", { parcel, qrImage, modifyCode });
+
+  } catch (e) {
+    console.error("Modify route error:", e);
+    res.status(500).send("INTERNAL SERVER ERROR!");
+  }
+});
+
+
+
+
+
+
+
+
 
 
 
@@ -4502,8 +4548,7 @@ app.get("/send/step3", isAuthenticated, async (req, res) => {
     const prestatus = draft.status;
     const user = await User.findById(req.session.user._id);
     const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const modifyCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const pickupCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
     let cost = getEstimatedCost(draft.size);
     if (draft.receiverDeliveryMethod === "address_delivery") {
       cost += parseFloat(rate); // Add delivery + platform fee

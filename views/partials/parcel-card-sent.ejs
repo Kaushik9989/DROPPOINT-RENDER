@@ -47,6 +47,17 @@
       </p>
 
 <div class="text-end mt-3 d-flex justify-content-end gap-2">
+  <% if (
+  parcel.status === 'awaiting_pick' &&
+  new Date(parcel.expiresAt) > new Date()
+) { %>
+  <a href="/mobile/parcel/<%= parcel.customId %>/modify"
+     class="btn btn-sm btn-outline-secondary"
+     style="border-radius: 8px; padding: 0.4rem 1rem;">
+    Modify
+  </a>
+<% } %>
+
 
   <a href="/mobile/parcel/<%= parcel.customId %>"
      class="btn btn-sm btn-outline-primary"
