@@ -172,20 +172,14 @@ html, body {
 
     <!-- Title -->
     <div style="font-size:0.9rem;font-weight:800;letter-spacing:0.18em;color:#0f172a;margin-bottom:6px;">
-      MODIFY PARCEL CONTENT
+      MODIFY DROPPED PARCEL
     </div>
 
     <!-- QR -->
     <img src="<%= qrImage %>" alt="QR Code" class="qr-img" />
 
     <!-- Info -->
-    <div class="info-box">
-      ⏰ <b>Modification window:</b><br>
-      You can open the locker and modify the parcel contents using this QR or code.<br>
-      <span style="color:#dc2626;font-weight:700;">
-        After the expiry time, you cannot modify.
-      </span>
-    </div>
+   
 
     <!-- Access Code -->
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:0.14em;color:#64748b;">
@@ -202,23 +196,8 @@ html, body {
       <div class="locker-pill">Compartment : <%= (parseInt(parcel.UsercompartmentId)) || 'N/A' %></div>
     </div>
 
-    <!-- Expiry -->
-    <%
-      const expiryDate = new Date(parcel.expiresAt);
-      const formattedExpiry = expiryDate.toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    %>
 
-    <div style="margin-bottom:12px;font-size:0.95rem;font-weight:700;color:#0f172a;">
-      Parcel Expires on: <span style="color:#dc2626;"><%= formattedExpiry %></span>
-    </div>
+   
 
     <!-- Directions -->
    
