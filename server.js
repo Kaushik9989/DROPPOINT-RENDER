@@ -25,6 +25,7 @@ const Extension = require("./models/extension.js");
 const Locker = require("./models/locker.js");
 const Locker1 = require("./models/Locker/LockerUpdated.js");
 const DropLocation = require("./models/Locker/DropLocation.js");
+const DeliveryRequest = require("./models/deskDeliveryRequest");
 const Parcel1 = require("./models/ParcelUpdated.js");
 const Parcel2 = require("./models/parcel2Updated.js");
 const User = require("./models/User/UserUpdated.js");
@@ -4157,6 +4158,141 @@ app.get('/mobile/parcel/:id/modify', isAuthenticated, async (req, res) => {
     res.status(500).send("INTERNAL SERVER ERROR!");
   }
 });
+
+
+
+
+
+
+
+
+//// delivery desk
+
+app.get("/mobile/parcel/:id/desk-delivery", async (req, res) => {
+  
+  const parcel = await Parcel2.findOne({customId : req.params.id});
+const existing = await DeliveryRequest.findOne({ parcel: parcel._id });
+if (existing) {
+  return res.status(400).json({ success: false, message: "Delivery already requested" });
+}
+
+  if (!parcel || parcel.status !== "awaiting_pick") {
+    return res.send("Parcel not eligible for desk delivery");
+  }
+
+  res.render("mobile/deskDelivery", { parcel });
+});
+
+
+
+app.post("/delivery-request/create-order", async (req, res) => {  
+  try {
+    const { parcelId, deskAddress } = req.body;
+
+    const parcel = await Parcel2.findById(parcelId);
+    if (!parcel) {
+      return res.status(404).json({ success: false, message: "Parcel not found" });
+    }
+
+    if (parcel.status !== "awaiting_pick") {
+      return res.status(400).json({ success: false, message: "Parcel not eligible for desk delivery" });
+    }
+
+    const deliveryFee = 10;
+    const parcelCost = parcel.price || 0;
+    const totalAmount = parcelCost + deliveryFee;
+
+    const order = await razorpay.orders.create({
+      amount: totalAmount * 100, // paise
+      currency: "INR",
+      receipt: "desk_" + parcel._id,
+      notes: {
+        parcelId: parcel._id.toString(),
+        purpose: "Desk Delivery",
+      },
+    });
+
+    res.json({
+      success: true,
+      order,
+      amount: totalAmount,
+      deliveryFee,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Failed to create order" });
+  }
+});
+
+app.get("/mobile/delivery-success", (req, res) => {
+  res.render("mobile/deliverySuccess");
+});
+
+
+app.post("/api/delivery-request/verify-and-create", async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      parcelId,
+      deskAddress,
+    } = req.body;
+
+    // 🔐 Verify signature
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Payment verification failed" });
+    }
+
+    const parcel = await Parcel2.findById(parcelId);
+    if (!parcel) {
+      return res.status(404).json({ success: false, message: "Parcel not found" });
+    }
+
+    if (parcel.status !== "awaiting_pick") {
+      return res.status(400).json({ success: false, message: "Parcel not eligible" });
+    }
+
+    // 🧠 Get customer info from parcel
+    const customerName = parcel.receiverName;
+    const customerPhone = parcel.receiverPhone;
+
+    // 💾 Create Delivery Request
+    const deliveryRequest = await DeliveryRequest.create({
+      parcel: parcel._id,
+      customerPhone,
+      customerName,
+      deskAddress,
+      price: 10,
+      locker: parcel.lockerId || "Unknown",
+      status: "pending",
+    });
+
+    // Mark parcel
+    parcel.receiverDeliveryMethod = "desk";
+    await parcel.save();
+
+    res.json({
+      success: true,
+      message: "Desk delivery request created",
+      deliveryRequest,
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+
+
 
 
 

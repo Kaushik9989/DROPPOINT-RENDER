@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const DeliveryAgentSchema = new mongoose.Schema({
-  partner: { type: String, required: true, index: true },
+ partner: { type: mongoose.Schema.Types.ObjectId, ref: "Partner", index: true },
   name: String,
   phone: { type: String, required: true, index: true },
   accessCode: { type: String, required: true, unique: true, index: true },
