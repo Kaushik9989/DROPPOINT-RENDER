@@ -97,6 +97,13 @@
       </p>
 
       <div class="text-end mt-3 d-flex justify-content-end gap-2">
+        <% if (parcel.status === 'awaiting_pick') { %>
+  <a href="/mobile/parcel/<%= parcel.customId %>/desk-delivery" 
+     class="btn btn-sm btn-outline-dark"
+     style="border-radius: 8px; padding: 0.4rem 1rem;">
+    🧑‍💼 Desk Delivery
+  </a>
+<% } %>
 
   <a href="/mobile/parcel/<%= parcel.customId %>" 
      class="btn btn-sm btn-outline-primary"
