@@ -13,7 +13,7 @@
     body {
       background: #f4f6fb;
       margin: 0;
-      padding-bottom: 90px; /* space for sticky bar */
+      padding-bottom: 90px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
@@ -97,6 +97,28 @@
     <div class="parcel-chip mt-2">Ready for Pickup</div>
   </div>
 
+  <!-- Saved Addresses -->
+  <% if (savedAddresses && savedAddresses.length > 0) { %>
+    <div class="card p-3 mb-3">
+      <div class="section-title mb-2">Saved Addresses</div>
+
+      <% savedAddresses.forEach((addr) => { %>
+        <button 
+          type="button"
+          class="btn btn-outline-primary w-100 mb-2 text-start"
+          onclick='useSavedAddress(<%- JSON.stringify(addr) %>)'
+        >
+          <strong><%= addr.building %></strong>
+          <% if (addr.floor) { %> - Floor <%= addr.floor %> <% } %>
+          <% if (addr.deskNumber) { %> - Desk <%= addr.deskNumber %> <% } %>
+          <div style="font-size:12px;color:#666">
+            <%= addr.company || "" %> <%= addr.directions || "" %>
+          </div>
+        </button>
+      <% }) %>
+    </div>
+  <% } %>
+
   <!-- Address Form -->
   <div class="card p-3">
     <div class="section-title mb-2">Delivery Address</div>
@@ -135,7 +157,7 @@
       <div style="font-size:12px;color:#777">Delivery Fee</div>
       <div class="price">₹10</div>
     </div>
-    <div style="font-size:12px;color:#777">Usually delivered in 10-15 mins</div>
+    <div style="font-size:12px;color:#777">Usually delivered in 10–15 mins</div>
   </div>
 
   <button class="btn btn-primary pay-btn" id="payBtn">
@@ -146,14 +168,21 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
-const form = document.getElementById("deskForm");
+function useSavedAddress(addr) {
+  document.getElementById("building").value = addr.building || "";
+  document.getElementById("floor").value = addr.floor || "";
+  document.getElementById("desk").value = addr.deskNumber || "";
+  document.getElementById("company").value = addr.company || "";
+  document.getElementById("directions").value = addr.directions || "";
+}
+
 const payBtn = document.getElementById("payBtn");
 
 payBtn.addEventListener("click", async function() {
 
   const parcelId = document.getElementById("parcelId").value;
-
   const building = document.getElementById("building").value;
+
   if (!building) {
     alert("Please enter building");
     return;

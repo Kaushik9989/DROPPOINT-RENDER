@@ -4169,20 +4169,31 @@ app.get('/mobile/parcel/:id/modify', isAuthenticated, async (req, res) => {
 //// delivery desk
 
 app.get("/mobile/parcel/:id/desk-delivery", async (req, res) => {
-  
-  const parcel = await Parcel2.findOne({customId : req.params.id});
-const existing = await DeliveryRequest.findOne({ parcel: parcel._id });
-if (existing) {
-  return res.status(400).json({ success: false, message: "Delivery already requested" });
-}
+  const parcel = await Parcel2.findOne({ customId: req.params.id });
 
   if (!parcel || parcel.status !== "awaiting_pick") {
     return res.send("Parcel not eligible for desk delivery");
   }
 
-  res.render("mobile/deskDelivery", { parcel });
-});
+  // Prevent duplicate delivery request for same parcel
+  const existing = await DeliveryRequest.findOne({ parcel: parcel._id });
+  if (existing) {
+    return res.send("Delivery already requested for this parcel");
+  }
 
+  // 🔍 Find previous delivery addresses by phone
+  const previousRequests = await DeliveryRequest.find({
+    customerPhone: parcel.receiverPhone,
+  }).sort({ createdAt: -1 }).limit(5);
+
+  // Extract only addresses
+  const savedAddresses = previousRequests.map(r => r.deskAddress);
+  console.log(savedAddresses);
+  res.render("mobile/deskDelivery", { 
+    parcel,
+    savedAddresses
+  });
+});
 
 
 app.post("/delivery-request/create-order", async (req, res) => {  
