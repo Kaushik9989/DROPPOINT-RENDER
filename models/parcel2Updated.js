@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const ParcelSchema = new mongoose.Schema({
-  senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   senderName: String,
   senderPhone: String,
 

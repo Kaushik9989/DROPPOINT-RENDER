@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Choose Courier</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    .courier-cards .card {
+      transition: transform 0.2s ease;
+    }
+    .courier-cards .card:hover {
+      transform: scale(1.01);
+    }
+  </style>
+</head>
+
+<body class="bg-light">
+
+<%
+/* -------------------------------------------------
+   SORT TYPE (FIXES CRASH)
+-------------------------------------------------- */
+const sortType = (query && query.sort) ? query.sort : "cheapest";
+
+/* -------------------------------------------------
+   DELIVERY TIME FORMATTER
+-------------------------------------------------- */
+function formatDeliveryTime(courier) {
+  let totalMinutes = 0;
+
+  // Real-time ETA (Borzo / Porter)
+  if (courier.estimated_delivery_minutes) {
+    totalMinutes = Number(courier.estimated_delivery_minutes);
+  }
+  // Days-based ETA (Shiprocket)
+  else if (courier.estimated_delivery_days) {
+    totalMinutes = Number(courier.estimated_delivery_days) * 24 * 60;
+  }
+
+  if (!totalMinutes || totalMinutes <= 0) return "N/A";
+
+  if (totalMinutes < 60) {
+    return `${Math.round(totalMinutes)} minutes`;
+  }
+
+  const totalHours = Math.floor(totalMinutes / 60);
+  const minutes = Math.round(totalMinutes % 60);
+
+  if (totalHours < 24) {
+    return minutes > 0
+      ? `${totalHours} hours ${minutes} minutes`
+      : `${totalHours} hours`;
+  }
+
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  return hours > 0
+    ? `${days} day${days > 1 ? "s" : ""} ${hours} hours`
+    : `${days} day${days > 1 ? "s" : ""}`;
+}
+
+/* -------------------------------------------------
+   SORTING + LOCKER COST HELPERS
+-------------------------------------------------- */
+function getDeliveryDays(courier) {
+  if (courier.estimated_delivery_minutes) {
+    return courier.estimated_delivery_minutes / (60 * 24);
+  }
+  if (courier.estimated_delivery_days) {
+    return Number(courier.estimated_delivery_days);
+  }
+  return 3;
+}
+
+function getLockerCostForCourier(courier) {
+  const days = Math.ceil(getDeliveryDays(courier));
+  const perDay = 10;
+  return days * perDay;
+}
+
+/* -------------------------------------------------
+   SORT COURIERS
+-------------------------------------------------- */
+let sortedCouriers = [...courierOptions];
+
+if (sortType === "fastest") {
+  sortedCouriers.sort((a, b) => getDeliveryDays(a) - getDeliveryDays(b));
+} else {
+  sortedCouriers.sort((a, b) => a.rate - b.rate);
+}
+%>
+
+<!-- Navbar -->
+<%- include('../../partials/navbar') %>
+
+<div class="container mt-5">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-semibold">🚚 Choose a Courier</h3>
+
+    <div class="btn-group">
+      <a href="?sort=cheapest"
+         class="btn btn-outline-primary btn-sm <%= sortType === 'cheapest' ? 'active' : '' %>">
+        💰 Cheapest
+      </a>
+      <a href="?sort=fastest"
+         class="btn btn-outline-success btn-sm <%= sortType === 'fastest' ? 'active' : '' %>">
+        ⚡ Fastest
+      </a>
+    </div>
+  </div>
+
+  <!-- Pickup / Drop -->
+  <div class="card mb-3 border-0 shadow-sm">
+    <div class="card-body small text-secondary">
+      <div><strong>📍 Pickup:</strong> <%= pickupLocation.address %></div>
+      <div><strong>🏁 Drop:</strong> <%= dropLocation.address %></div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body p-2">
+      <div class="fw-semibold mb-2">🗺️ Route Preview</div>
+
+      <iframe
+        width="100%"
+        height="260"
+        style="border-radius: 10px; border: 0;"
+        loading="lazy"
+        allowfullscreen
+        referrerpolicy="no-referrer-when-downgrade"
+        src="https://www.google.com/maps/embed/v1/directions?key=<%= GOOGLE_MAPS_EMBED_KEY %>&origin=<%= pickupLocation.lat %>,<%= pickupLocation.lng %>&destination=<%= dropLocation.lat %>,<%= dropLocation.lng %>&mode=driving">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- Courier Cards -->
+  <div class="courier-cards">
+
+    <% if (sortedCouriers.length === 0) { %>
+      <div class="alert alert-warning">
+        No courier services available for this route.
+      </div>
+    <% } %>
+
+    <% sortedCouriers.forEach(courier => {
+      const lockerCost = getLockerCostForCourier(courier);
+      const total = Number(courier.rate) + lockerCost;
+    %>
+
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-start">
+
+          <div>
+            <h5 class="card-title mb-2">
+              🚚 <span class="text-primary fw-bold"><%= courier.courier_name %></span>
+            </h5>
+
+            <ul class="list-unstyled text-secondary small mb-0">
+              <li>📦 Courier Cost: ₹<%= courier.rate %></li>
+              <li>⏱ Delivery Time: <%= formatDeliveryTime(courier) %></li>
+              <li>💼 Locker Fee: ₹<%= lockerCost %></li>
+              <li class="fw-bold text-dark mt-1">💰 Total: ₹<%= total %></li>
+            </ul>
+          </div>
+
+          <form action="/mobile/send/step3" method="get">
+            <input type="hidden" name="selectedCourierId" value="<%= courier.courier_company_id %>">
+            <input type="hidden" name="rate" value="<%= courier.rate %>">
+            <input type="hidden" name="lockerCost" value="<%= lockerCost %>">
+            <input type="hidden" name="totalCost" value="<%= total %>">
+
+            <button type="submit"
+                    class="btn btn-outline-primary px-4 py-2 mt-3 mt-md-0">
+              Select
+            </button>
+          </form>
+
+        </div>
+      </div>
+
+    <% }); %>
+
+  </div>
+
+</div>
+
+</body>
+</html>

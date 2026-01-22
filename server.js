@@ -2461,96 +2461,494 @@ app.get("/mobile/payment/success-link", async (req, res) => {
   }
 });
 
-app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
-  const user = await User.findById(req.session.user._id).lean();
-  if (!user) return res.redirect("/login");
+// app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
+//   const user = await User.findById(req.session.user._id).lean();
+//   if (!user) return res.redirect("/login");
+
+//   try {
+//     const draft = req.session.parcelDraft;
+
+//     if (
+//       !draft ||
+//       !draft.selectedLockerPincode ||
+//       !draft.recipientPincode ||
+//       draft.receiverDeliveryMethod !== "address_delivery"
+//     ) {
+//       req.flash("error", "Incomplete data for delivery estimation");
+//       return res.redirect("/mobile/send/step2");
+//     }
+
+//     let token = await generateShiprocketToken();
+
+//     const headers = {
+//       "Content-Type": "application/json",
+//       Authorization: `Bearer ${token}`,
+//     };
+
+//     let courierOptions = [];
+//     let maxDays = 5; // ✅ Fallback ETA (VERY IMPORTANT)
+
+//     try {
+//       const response = await axios.get(
+//         "https://apiv2.shiprocket.in/v1/external/courier/serviceability",
+//         {
+//           headers,
+//           params: {
+//             pickup_postcode: String(draft.selectedLockerPincode),
+//             delivery_postcode: String(draft.recipientPincode),
+//             weight: 1,
+//             cod: 0,
+//           },
+//           timeout: 10000,
+//         }
+//       );
+
+//       // console.log("🚚 Shiprocket raw response:", JSON.stringify(response.data, null, 2));
+//       const apiData = response.data;
+
+//       if (
+//         apiData &&
+//         apiData.status === 200 &&
+//         apiData.data &&
+//         Array.isArray(apiData.data.available_courier_companies)
+//       ) {
+//         courierOptions = apiData.data.available_courier_companies;
+
+//         if (courierOptions.length > 0) {
+//           maxDays = Math.max(
+//             ...courierOptions.map((c) => Number(c.estimated_delivery_days || 1))
+//           );
+//         }
+//       } else {
+//         console.error("❌ Shiprocket returned invalid structure:", apiData);
+//       }
+//     } catch (shipErr) {
+//       console.error(
+//         "❌ Shiprocket API failed, using fallback ETA:",
+//         shipErr.message
+//       );
+//     }
+
+//     // 💰 Calculate locker cost from size + days
+//     const lockercost = calculateLockerCostByDays(draft.size, maxDays);
+
+//     // Optional: sort couriers
+//     if (courierOptions.length > 0) {
+//       courierOptions.sort((a, b) => a.rate - b.rate);
+//     }
+
+//     res.render("mobile/parcel/estimate", {
+//       courierOptions, // may be empty
+//       lockercost,
+//       maxDays,
+//       parcelSize: draft.size,
+//       shiprocketFailed: courierOptions.length === 0,
+//       query: req.query,
+//     });
+//   } catch (err) {
+//     console.error("❌ Error in estimate route:", err);
+//     req.flash("error", "Error fetching delivery estimate.");
+//     res.redirect("/mobile/send/step2");
+//   }
+// });
+
+async function geocodeAddress(address, pincode) {
+  const queries = [];
+
+  // 1️⃣ Full address with country
+  if (address) {
+    queries.push(`${address}, India`);
+  }
+
+  // 2️⃣ Pincode fallback
+  if (pincode) {
+    queries.push(`${pincode}, India`);
+  }
+
+  for (const query of queries) {
+    try {
+      const res = await axios.get(
+        "https://nominatim.openstreetmap.org/search",
+        {
+          params: {
+            q: query,
+            format: "json",
+            limit: 1,
+          },
+          headers: {
+            "User-Agent": "DropPoint/1.0 (support@droppoint.app)",
+          },
+          timeout: 8000,
+        }
+      );
+
+      if (res.data && res.data.length > 0) {
+        return {
+          lat: Number(res.data[0].lat),
+          lng: Number(res.data[0].lon),
+        };
+      }
+    } catch (err) {
+      console.warn("⚠️ Geocode attempt failed for:", query);
+    }
+  }
+
+  throw new Error("Failed to geocode address");
+}
+
+
+
+
+/// BROZO ESTIMATE
+async function getTravelTimeMinutes(origin, destination) {
+  const url = "https://maps.googleapis.com/maps/api/distancematrix/json";
+
+  const res = await axios.get(url, {
+    params: {
+      origins: `${origin.lat},${origin.lng}`,
+      destinations: `${destination.lat},${destination.lng}`,
+      mode: "driving",
+      key: process.env.GOOGLE_MAPS_API_KEY,
+    },
+    timeout: 10000,
+  });
+
+  const element = res.data.rows?.[0]?.elements?.[0];
+
+  if (!element || element.status !== "OK") {
+    return null;
+  }
+
+  // duration.value is in seconds
+  return Math.round(element.duration.value / 60);
+}
+
+const BORZO_BASE_URL =
+  "https://robot-in.borzodelivery.com/api/business/1.6";
+
+/**
+ * estimateInput = {
+ *   pickup, drop, parcel, sender, receiver
+ * }
+ */
+async function getBorzoEstimate(estimateInput) {
+  const { pickup, drop, parcel, sender, receiver } = estimateInput;
+
+  const vehicleTypeId = getBorzoVehicle(parcel.size);
+  const weightKg = Number(parcel.weightKg) || 1;
+
+  const headers = {
+    "Content-Type": "application/json",
+    "X-DV-Auth-Token": process.env.BORZO_TOKEN,
+  };
+
+  const results = [];
 
   try {
+    /* ------------------------------------------------
+       STANDARD / INSTANT DELIVERY
+    ------------------------------------------------ */
+    const standardResponse = await axios.post(
+      `${BORZO_BASE_URL}/calculate-order`,
+      {
+        type: "standard",
+        matter: parcel.category || "Parcel delivery",
+        vehicle_type_id: vehicleTypeId,
+        total_weight_kg: weightKg,
+        points: [
+          {
+            address: pickup.address,
+            latitude: pickup.lat,
+            longitude: pickup.lng,
+            contact_person: {
+              name: sender.name || "Sender",
+              phone: sender.phone || "9999999999",
+            },
+          },
+          {
+            address: drop.address,
+            latitude: drop.lat,
+            longitude: drop.lng,
+            contact_person: {
+              name: receiver.name || "Receiver",
+              phone: receiver.phone || "9999999999",
+            },
+          },
+        ],
+      },
+      { headers, timeout: 15000 }
+    );
+
+    const order = standardResponse.data?.order;
+    if (standardResponse.data?.is_successful && order) {
+      // Calculate ETA in minutes
+      let etaMinutes = await getTravelTimeMinutes(
+  { lat: pickup.lat, lng: pickup.lng },
+  { lat: drop.lat, lng: drop.lng }
+);
+
+// HARD SAFETY FALLBACK (only if Google fails)
+if (!etaMinutes || etaMinutes <= 0) {
+  etaMinutes = 180; // assume 3 hours
+}
+
+
+      const isInstant = etaMinutes <= 60;
+
+      results.push({
+        provider: "borzo",
+        courier_name: isInstant
+          ? `Borzo (Instant)`
+          : `Borzo (${getVehicleLabel(vehicleTypeId)})`,
+        rate: Number(order.payment_amount),
+        estimated_delivery_minutes: etaMinutes,
+        courier_company_id: isInstant
+          ? "borzo_instant"
+          : `borzo_${vehicleTypeId}`,
+        delivery_type: isInstant ? "instant" : "standard",
+        raw: order,
+      });
+    }
+
+    /* ------------------------------------------------
+       END OF DAY DELIVERY
+    ------------------------------------------------ */
+    /* ------------------------------------------------
+   END OF DAY DELIVERY (STRICT FORMAT)
+------------------------------------------------ */
+/* ------------------------------------------------
+   END OF DAY DELIVERY (STRICT + SAFE)
+------------------------------------------------ */
+/* ------------------------------------------------
+   END OF DAY DELIVERY (INDIA-CORRECT FORMAT)
+------------------------------------------------ */
+try {
+  const eodResponse = await axios.post(
+    `${BORZO_BASE_URL}/calculate-order`,
+    {
+      type: "endofday",
+      total_weight_kg: weightKg,
+      points: [
+        {
+          address: pickup.address || "Pickup location",
+          latitude: pickup.lat,
+          longitude: pickup.lng,
+        },
+        {
+          address: drop.address || "Drop location",
+          latitude: drop.lat,
+          longitude: drop.lng,
+        },
+      ],
+    },
+    { headers, timeout: 15000 }
+  );
+
+  const eodOrder = eodResponse.data?.order;
+
+  if (eodResponse.data?.is_successful && eodOrder) {
+    results.push({
+      provider: "borzo",
+      courier_name: "Borzo (End of Day)",
+      rate: Number(eodOrder.payment_amount),
+      estimated_delivery_days: 1,
+      courier_company_id: "borzo_eod",
+      delivery_type: "eod",
+      raw: eodOrder,
+    });
+  }
+} catch (err) {
+  console.warn("⚠️ Borzo EOD Unavailable");
+
+  if (err.response) {
+    console.error(
+      "Borzo EOD Error:",
+      JSON.stringify(err.response.data, null, 2)
+    );
+  }
+}
+
+
+
+    return results;
+  } catch (err) {
+    console.error("❌ Borzo estimate failed:", {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data,
+    });
+    return [];
+  }
+}
+
+/* ---------- helpers ---------- */
+
+function getBorzoVehicle(parcelSize) {
+  switch (parcelSize) {
+    case "large":
+      return 10; // Van
+    case "medium":
+    case "small":
+    default:
+      return 8; // Bike
+  }
+}
+
+function getVehicleLabel(id) {
+  if (id === 8) return "Bike";
+  if (id === 9) return "Car";
+  if (id === 10) return "Van";
+  return "Bike";
+}
+
+app.get("/mobile/send/estimate", isAuthenticated, async (req, res) => {
+  try {
     const draft = req.session.parcelDraft;
+    const user = req.user; // assuming passport / session auth
 
     if (
       !draft ||
-      !draft.selectedLockerPincode ||
-      !draft.recipientPincode ||
+      !draft.selectedLocker ||
+      !draft.recipientAddress ||
       draft.receiverDeliveryMethod !== "address_delivery"
     ) {
       req.flash("error", "Incomplete data for delivery estimation");
       return res.redirect("/mobile/send/step2");
     }
 
-    let token = await generateShiprocketToken();
+    /* ------------------ FETCH LOCKER ------------------ */
+    console.log("🧪 selectedLocker value:", draft.selectedLocker);
 
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+    const locker = await Locker.findById(draft.selectedLocker);
+    if (!locker) {
+      req.flash("error", "Pickup locker not found. Please reselect.");
+      return res.redirect("/mobile/send/step2");
+    }
+
+    const pickup = {
+      lat: Number(locker.location.lat),
+      lng: Number(locker.location.lng),
+      address: locker.location.address,
+      pincode: locker.location.pincode,
     };
 
-    let courierOptions = [];
-    let maxDays = 5; // ✅ Fallback ETA (VERY IMPORTANT)
+    console.log("📍 Pickup coords:", pickup);
+    // 🔥 Invalidate cached drop coordinates if address changed
+if (draft._lastGeocodedAddress !== draft.recipientAddress) {
+  draft.recipientLatLng = null;
+  draft._lastGeocodedAddress = draft.recipientAddress;
+}
 
-    try {
-      const response = await axios.get(
-        "https://apiv2.shiprocket.in/v1/external/courier/serviceability",
-        {
-          headers,
-          params: {
-            pickup_postcode: String(draft.selectedLockerPincode),
-            delivery_postcode: String(draft.recipientPincode),
-            weight: 1,
-            cod: 0,
-          },
-          timeout: 10000,
-        }
-      );
 
-      // console.log("🚚 Shiprocket raw response:", JSON.stringify(response.data, null, 2));
-      const apiData = response.data;
-
-      if (
-        apiData &&
-        apiData.status === 200 &&
-        apiData.data &&
-        Array.isArray(apiData.data.available_courier_companies)
-      ) {
-        courierOptions = apiData.data.available_courier_companies;
-
-        if (courierOptions.length > 0) {
-          maxDays = Math.max(
-            ...courierOptions.map((c) => Number(c.estimated_delivery_days || 1))
-          );
-        }
-      } else {
-        console.error("❌ Shiprocket returned invalid structure:", apiData);
+    /* ------------------ GEOCODE DROP ------------------ */
+    if (!draft.recipientLatLng) {
+      try {
+        draft.recipientLatLng = await geocodeAddress(
+          draft.recipientAddress,
+          draft.recipientPincode
+        );
+      } catch (geoErr) {
+        console.error("❌ Geocoding failed:", geoErr.message);
+        req.flash(
+          "error",
+          "Unable to locate delivery address. Please enter a more detailed address."
+        );
+        return res.redirect("/mobile/send/step2");
       }
-    } catch (shipErr) {
-      console.error(
-        "❌ Shiprocket API failed, using fallback ETA:",
-        shipErr.message
-      );
     }
 
-    // 💰 Calculate locker cost from size + days
+    const drop = {
+      lat: draft.recipientLatLng.lat,
+      lng: draft.recipientLatLng.lng,
+      address: draft.recipientAddress,
+      pincode: draft.recipientPincode,
+    };
+
+    /* ------------------ BUILD ESTIMATE INPUT ------------------ */
+    const estimateInput = {
+      pickup,
+      drop,
+      parcel: {
+        size: draft.size,                 // small | medium | large
+        weightKg: draft.weightKg || 1,     // must exist
+        category: draft.category || "Parcel",
+      },
+      sender: {
+        name: user?.name || "Sender",
+        phone: user?.phone || "9999999999",
+      },
+      receiver: {
+        name: draft.receiverName || "Receiver",
+        phone: draft.receiverPhone || "9999999999",
+      },
+    };
+
+    /* ------------------ BORZO ESTIMATE ------------------ */
+    let courierOptions = await getBorzoEstimate(estimateInput);
+    
+    courierOptions = Array.isArray(courierOptions) ? courierOptions : [];
+    /* ---------------- SHIPROCKET ESTIMATE ---------------- */
+
+try {
+  // Shiprocket works best for intercity
+  const isIntercity =
+    estimateInput.pickup.pincode &&
+    estimateInput.drop.pincode &&
+    estimateInput.pickup.pincode !== estimateInput.drop.pincode;
+
+  if (isIntercity) {
+    const shiprocketResults = await getShiprocketEstimate(estimateInput);
+
+    if (Array.isArray(shiprocketResults) && shiprocketResults.length > 0) {
+      courierOptions.push(...shiprocketResults);
+    }
+  }
+} catch (err) {
+  console.error("⚠️ Shiprocket skipped due to error:", err.message);
+}
+
+
+    console.log("🚚 courierOptions just before render:", courierOptions);
+
+    /* ------------------ LOCKER COST ------------------ */
+    const maxDays =
+      courierOptions.length > 0
+        ? Number(courierOptions[0].estimated_delivery_days || 1)
+        : 1;
+
     const lockercost = calculateLockerCostByDays(draft.size, maxDays);
 
-    // Optional: sort couriers
-    if (courierOptions.length > 0) {
-      courierOptions.sort((a, b) => a.rate - b.rate);
-    }
+    /* ------------------ RENDER ------------------ */
+    res.render("mobile/parcel/estimate1", {
+  courierOptions,
+  lockercost,
+  maxDays,
+  parcelSize: draft.size,
+  noCouriers: courierOptions.length === 0,
+  query: req.query,
 
-    res.render("mobile/parcel/estimate", {
-      courierOptions, // may be empty
-      lockercost,
-      maxDays,
-      parcelSize: draft.size,
-      shiprocketFailed: courierOptions.length === 0,
-      query: req.query,
-    });
+  pickupLocation: {
+    address: pickup.address,
+    lat: pickup.lat,
+    lng: pickup.lng,
+  },
+
+  dropLocation: {
+    address: drop.address,
+    lat: drop.lat,
+    lng: drop.lng,
+  },
+  GOOGLE_MAPS_EMBED_KEY: process.env.GOOGLE_MAPS_EMBED_KEY,
+});
+
   } catch (err) {
-    console.error("❌ Error in estimate route:", err);
-    req.flash("error", "Error fetching delivery estimate.");
+    console.error("❌ Estimate error:", err);
+    req.flash("error", "Could not fetch delivery estimate");
     res.redirect("/mobile/send/step2");
   }
 });
+
+
 
 function calculateLockerCostByDays(size, days) {
   const normalizedSize = String(size || "")
@@ -4188,7 +4586,7 @@ app.get("/mobile/parcel/:id/desk-delivery", async (req, res) => {
 
   // Extract only addresses
   const savedAddresses = previousRequests.map(r => r.deskAddress);
-  console.log(savedAddresses);
+ 
   res.render("mobile/deskDelivery", { 
     parcel,
     savedAddresses
