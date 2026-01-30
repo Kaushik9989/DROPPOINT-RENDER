@@ -1563,32 +1563,162 @@ app.get("/logout", (req, res) => {
 
 /// OTP LOGIN ROUTES
 const VERIFY_SID = process.env.TWILIO_VERIFY_SERVICE_SID;
+// app.post("/otpLogin", async (req, res) => {
+//   const { phone } = req.body;
+//   // Basic phone number validation
+//   if (!phone || !/^\d{10}$/.test(phone)) {
+//     return res.render("login", {
+//       error: "⚠️ Please enter a valid 10-digit phone number.",
+//     });
+//   }
+
+//   // Save phone to session
+//   setLoginPhoneCookie(res, phone);
+
+//   // Optional: Analytics/tracking
+//   await trackFunnelStep(req, "login_phone", { phone });
+
+//   // Debug log (ensure .env has this variable)
+//   console.log("Verify SID:", VERIFY_SID);
+
+//   try {
+//     await client.verify.v2.services(VERIFY_SID).verifications.create({
+//       to: `+91${phone}`,
+//       channel: "sms",
+//     });
+//     req.session.save((err) => {
+//       if (err) {
+//         console.error("Session save error before redirect:", err);
+//         return res.render("login", {
+//           error: "⚠️ Session error. Please try again.",
+//         });
+//       }
+//       return res.redirect("/verify-login");
+//     });
+//   } catch (err) {
+//     console.error("OTP send error:", err?.message || err);
+
+//     return res.render("login", {
+//       error: "❌ Failed to send OTP. Please try again later.",
+//     });
+//   }
+// });
+
+app.get("/verify-login", (req, res) => {
+  const phone = req.session.phone; // saved from login step
+  res.render("verify-login", { error: null, phone });
+});
+
+// app.post("/verify-login", async (req, res) => {
+//   await trackFunnelStep(req, "otp_entered");
+
+//   const { otp } = req.body;
+//   console.log(otp);
+//   const phone = req.signedCookies?.login_phone || "";
+//   console.log(phone);
+
+//   if (!otp) {
+//     return res.render("verify-login", {
+//       error: "⚠️ Please enter a valid OTP.",
+//     });
+//   }
+
+//   try {
+//     const verificationCheck = await client.verify.v2
+//       .services(VERIFY_SID)
+//       .verificationChecks.create({
+//         to: `+91${phone}`,
+//         code: otp,
+//       });
+
+//     if (verificationCheck.status !== "approved") {
+//       return res.render("verify-login", {
+//         error: "❌ Invalid OTP. Try again.",
+//       });
+//     }
+
+//     let user = await User.findOne({ phone });
+
+//     if (!user) {
+//       req.session.user = { phone };
+
+//       return req.session.save((err) => {
+//         if (err) {
+//           console.error("Session save error:", err);
+//           return res.render("verify-login", {
+//             error: "⚠️ Session error. Please try again.",
+//           });
+//         }
+//         return res.redirect("/set-username");
+//       });
+//     }
+
+//     // Safe to proceed now
+//     user.lastLogin = new Date();
+//     await user.save();
+
+//     req.session.user = {
+//       _id: user._id,
+//       uid: user.uid,
+//       username: user.username || null,
+//       phone: user.phone || null,
+//       email: user.email || null,
+//       wallet: user.wallet || { credits: 0 },
+//     };
+//     const redirectUrl = req.session.redirectTo || "/mobileDashboard";
+//     delete req.session.redirectTo; // clean up
+//     return res.redirect(redirectUrl);
+//   } catch (err) {
+//     console.error("OTP Verify Error:", err?.message || err);
+//     return res.render("verify-login", {
+//       error: "❌ OTP verification failed. Please try again.",
+//     });
+//   }
+// });
+
+
+///// STPL
+
+
+const Otp = require("./models/Otp.js");
+const { GenerateOtp, hashOtp } = require("./utils/otp");
+
+
 app.post("/otpLogin", async (req, res) => {
   const { phone } = req.body;
-  // Basic phone number validation
+
   if (!phone || !/^\d{10}$/.test(phone)) {
     return res.render("login", {
       error: "⚠️ Please enter a valid 10-digit phone number.",
     });
   }
 
-  // Save phone to session
   setLoginPhoneCookie(res, phone);
-
-  // Optional: Analytics/tracking
   await trackFunnelStep(req, "login_phone", { phone });
 
-  // Debug log (ensure .env has this variable)
-  console.log("Verify SID:", VERIFY_SID);
-
   try {
-    await client.verify.v2.services(VERIFY_SID).verifications.create({
-      to: `+91${phone}`,
-      channel: "sms",
+    // 1️⃣ Generate OTP
+    const otp = GenerateOtp();
+    const otpHash = hashOtp(otp);
+
+    // 2️⃣ Clear old OTPs
+    await Otp.deleteMany({ phone });
+
+    // 3️⃣ Store OTP
+    await Otp.create({
+      phone,
+      otpHash,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 mins
     });
+
+    // 4️⃣ SEND OTP (your existing SMS/WhatsApp logic here)
+    console.log("OTP (dev only):", otp);
+    const OTPmsg = `Your Drop Point verification code is ${otp}. Do not share this OTP with anyone. Valid for ${5} minutes. - DROPPOINT`;
+    sendSMS(phone,OTPmsg);
+
     req.session.save((err) => {
       if (err) {
-        console.error("Session save error before redirect:", err);
+        console.error("Session save error:", err);
         return res.render("login", {
           error: "⚠️ Session error. Please try again.",
         });
@@ -1596,26 +1726,19 @@ app.post("/otpLogin", async (req, res) => {
       return res.redirect("/verify-login");
     });
   } catch (err) {
-    console.error("OTP send error:", err?.message || err);
-
+    console.error("OTP send error:", err);
     return res.render("login", {
       error: "❌ Failed to send OTP. Please try again later.",
     });
   }
 });
 
-app.get("/verify-login", (req, res) => {
-  const phone = req.session.phone; // saved from login step
-  res.render("verify-login", { error: null, phone });
-});
 
 app.post("/verify-login", async (req, res) => {
   await trackFunnelStep(req, "otp_entered");
 
   const { otp } = req.body;
-  console.log(otp);
   const phone = req.signedCookies?.login_phone || "";
-  console.log(phone);
 
   if (!otp) {
     return res.render("verify-login", {
@@ -1624,24 +1747,30 @@ app.post("/verify-login", async (req, res) => {
   }
 
   try {
-    const verificationCheck = await client.verify.v2
-      .services(VERIFY_SID)
-      .verificationChecks.create({
-        to: `+91${phone}`,
-        code: otp,
-      });
+    const record = await Otp.findOne({ phone });
 
-    if (verificationCheck.status !== "approved") {
+    if (!record || record.expiresAt < new Date()) {
+      return res.render("verify-login", {
+        error: "❌ OTP expired or invalid. Try again.",
+      });
+    }
+
+    const incomingHash = hashOtp(otp);
+
+    if (incomingHash !== record.otpHash) {
       return res.render("verify-login", {
         error: "❌ Invalid OTP. Try again.",
       });
     }
 
+    // OTP success → delete it
+    await Otp.deleteMany({ phone });
+
+    // 🔐 USER LOGIC (UNCHANGED)
     let user = await User.findOne({ phone });
 
     if (!user) {
       req.session.user = { phone };
-
       return req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
@@ -1653,7 +1782,6 @@ app.post("/verify-login", async (req, res) => {
       });
     }
 
-    // Safe to proceed now
     user.lastLogin = new Date();
     await user.save();
 
@@ -1665,16 +1793,86 @@ app.post("/verify-login", async (req, res) => {
       email: user.email || null,
       wallet: user.wallet || { credits: 0 },
     };
+
     const redirectUrl = req.session.redirectTo || "/mobileDashboard";
-    delete req.session.redirectTo; // clean up
+    delete req.session.redirectTo;
+
     return res.redirect(redirectUrl);
+
   } catch (err) {
-    console.error("OTP Verify Error:", err?.message || err);
+    console.error("OTP Verify Error:", err);
     return res.render("verify-login", {
       error: "❌ OTP verification failed. Please try again.",
     });
   }
 });
+
+
+app.post("/resend-login-otp", async (req, res) => {
+  const phone = req.session.phone || req.signedCookies?.login_phone;
+
+  if (!phone) {
+    return res.render("login", {
+      error: "⚠️ Session expired. Please enter phone again.",
+    });
+  }
+
+  try {
+    const existingOtp = await Otp.findOne({ phone });
+
+    // ⛔ No OTP exists → restart flow
+    if (!existingOtp) {
+      return res.render("login", {
+        error: "⚠️ OTP expired. Please login again.",
+      });
+    }
+
+    // ⏳ Cooldown: 30 seconds
+    const COOLDOWN = 30 * 1000;
+    if (Date.now() - existingOtp.lastSentAt < COOLDOWN) {
+      return res.render("verify-login", {
+        error: "⏳ Please wait 30 seconds before resending OTP.",
+      });
+    }
+
+    // 🚫 Max resend limit
+    if (existingOtp.resendCount >= 5) {
+      await Otp.deleteMany({ phone });
+      return res.render("login", {
+        error: "❌ Too many OTP requests. Please try again later.",
+      });
+    }
+
+    // 🔢 Generate NEW OTP (recommended)
+    const otp = generateOtp();
+    existingOtp.otpHash = hashOtp(otp);
+    existingOtp.expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    existingOtp.resendCount += 1;
+    existingOtp.lastSentAt = new Date();
+
+    await existingOtp.save();
+
+    // 📤 Send OTP (your existing SMS / WhatsApp code)
+    console.log(`🔁 Resent OTP to ${phone}:`, otp); 
+    const OTPmsg = `Your Drop Point verification code is ${otp}. Do not share this OTP with anyone. Valid for ${5} minutes. - DROPPOINT`;
+    sendSMS(phone,OTPmsg);// dev only
+
+    return res.redirect("/verify-login");
+
+  } catch (err) {
+    console.error("Resend OTP error:", err);
+    return res.render("verify-login", {
+      error: "❌ Failed to resend OTP. Please try again.",
+    });
+  }
+});
+
+
+
+
+
+
+
 
 app.get("/set-username", (req, res) => {
   const phone = req.signedCookies?.[LOGIN_COOKIE];
@@ -1723,35 +1921,35 @@ app.post("/set-username", async (req, res) => {
   }
 });
 
-app.post("/resend-login-otp", async (req, res) => {
-  const phone = req.session.phone;
+// app.post("/resend-login-otp", async (req, res) => {
+//   const phone = req.session.phone;
 
-  // Ensure session has phone number
-  if (!phone) {
-    return res.render("login", {
-      error: "⚠️ Session expired. Please enter your phone number again.",
-    });
-  }
+//   // Ensure session has phone number
+//   if (!phone) {
+//     return res.render("login", {
+//       error: "⚠️ Session expired. Please enter your phone number again.",
+//     });
+//   }
 
-  try {
-    // Resend OTP using Twilio
-    await client.verify.v2
-      .services(process.env.TWILIO_VERIFY_SERVICE_SID)
-      .verifications.create({
-        to: `+91${phone}`,
-        channel: "sms",
-      });
+//   try {
+//     // Resend OTP using Twilio
+//     await client.verify.v2
+//       .services(process.env.TWILIO_VERIFY_SERVICE_SID)
+//       .verifications.create({
+//         to: `+91${phone}`,
+//         channel: "sms",
+//       });
 
-    console.log(`✅ OTP resent to ${phone}`);
-    return res.redirect("/verify-login");
-  } catch (err) {
-    console.error("❌ Error resending OTP:", err?.message || err);
-    return res.render("verify-login", {
-      error: err,
-      phone,
-    });
-  }
-});
+//     console.log(`✅ OTP resent to ${phone}`);
+//     return res.redirect("/verify-login");
+//   } catch (err) {
+//     console.error("❌ Error resending OTP:", err?.message || err);
+//     return res.render("verify-login", {
+//       error: err,
+//       phone,
+//     });
+//   }
+// });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 
