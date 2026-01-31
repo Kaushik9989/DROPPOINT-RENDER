@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f9fafb;
+            --text: #1f2937;
+            --border: #d1d5db;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            font-family: 'Inter', -apple-system, sans-serif;
+            padding: 40px 16px;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .parcel-form {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            padding: 32px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .form-header h4 {
+            font-size: 1.75rem;
+            margin: 0 0 8px 0;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .form-header p {
+            color: #6b7280;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        fieldset {
+            border: none;
+            padding: 0;
+            margin-bottom: 32px;
+        }
+
+        legend {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: block;
+            width: 100%;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        input, textarea, select {
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            outline: none;
+            background-color: #fff;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        input::placeholder {
+            color: #9ca3af;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+        }
+
+        .submit-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .grid-row {
+                grid-template-columns: 1fr;
+            }
+            .parcel-form {
+                padding: 24px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <form class="parcel-form" method="POST" action="/api/parcel/create">
+            <header class="form-header">
+                <h4>Create Parcel</h4>
+                <p>Fill in the details to schedule your delivery.</p>
+            </header>
+
+            <fieldset>
+                <legend>Sender Information</legend>
+                <div class="form-group">
+                    <label for="senderName">Your Name</label>
+                    <input type="text" id="senderName" name="senderName" placeholder="e.g. John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="senderPhone">Your Phone</label>
+                   <input
+  type="tel"
+  name="senderPhone"
+  class="form-control"
+  placeholder="Enter sender phone"
+  value="<%= senderPhone %>"
+  required
+>
+
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Receiver Information</legend>
+                <div class="form-group">
+                    <label for="receiverName">Receiver Name</label>
+                    <input type="text" id="receiverName" name="receiverName" placeholder="e.g. Jane Smith" required>
+                </div>
+                <div class="form-group">
+                    <label for="receiverPhone">Receiver Phone</label>
+                    <input type="tel" id="receiverPhone" name="receiverPhone" placeholder="+1 (555) 000-0000" required>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Delivery Address</legend>
+                <div class="form-group">
+                    <label for="delivery_address">Full Address</label>
+                    <textarea id="delivery_address" name="delivery_address" rows="3" placeholder="Street, Apartment, Suite..." required></textarea>
+                </div>
+                <div class="grid-row">
+                    <div class="form-group">
+                        <label for="delivery_city">City</label>
+                        <input type="text" id="delivery_city" name="delivery_city" required>
+                    </div>
+                                        <div class="form-group">
+                        <label for="delivery_state">State</label>
+                        <input type="text" id="delivery_state" name="delivery_state" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="delivery_pincode">Pincode</label>
+                        <input type="text" id="delivery_pincode" name="delivery_pincode" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Parcel Size</legend>
+                <div class="form-group">
+                    <label for="size">Package Dimensions</label>
+                    <select name="size" id="size" required>
+                        <option value="" disabled selected>Select size...</option>
+                        <option value="small">Small (Fits in a mailbox)</option>
+                        <option value="medium">Medium (Standard box)</option>
+                        <option value="large">Large (Bulky item)</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <button type="submit" class="submit-btn">Create Parcel</button>
+        </form>
+    </main>
+
+</body>
+</html>

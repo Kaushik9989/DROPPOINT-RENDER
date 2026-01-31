@@ -64,18 +64,22 @@ status: {
   default: "awaiting_payment"
 },
 
-  transitInfo: {
-    courier: String,
-    courierCode: String,
-    shiprocketCourierId: Number,
-    fromLockerId: String,
-    toLockerId: String,
-    shiprocketOrderId: String,
-    rate: mongoose.Decimal128,
-    etd: String,
-    startedAt: Date,
-    deliveredAt: Date
-  },
+transitInfo: {
+  courier: String,
+  courierCode: String,
+  shiprocketCourierId: Number,
+  shiprocketOrderId: String,
+
+  awb: { type: String },   // ✅ REQUIRED
+
+  fromLockerId: String,
+  toLockerId: String,
+  rate: mongoose.Decimal128,
+  etd: String,
+  startedAt: Date,
+  deliveredAt: Date
+},
+
 
   shiprocketQuote: {
     courier_name: String,
@@ -121,6 +125,27 @@ closureReason: {
     "expired_no_liability"
   ]
 },
+
+// =======================
+// PICKUP (FOR COURIER)
+// =======================
+pickup_name: String,
+pickup_phone: String,
+pickup_address: String,
+pickup_city: String,
+pickup_state: String,
+pickup_pincode: String,
+
+// =======================
+// DELIVERY (FOR COURIER)
+// =======================
+delivery_name: String,
+delivery_phone: String,
+delivery_address: String,
+delivery_city: String,
+delivery_state: String,
+delivery_pincode: String,
+
 
 
 });

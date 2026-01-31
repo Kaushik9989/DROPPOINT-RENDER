@@ -1,0 +1,55 @@
+<form id="parcelForm">
+  <h4>Sender</h4>
+  <input name="senderName" placeholder="Sender Name" required />
+  <input name="senderPhone" placeholder="Sender Phone" required />
+  <input name="pickupPincode" placeholder="Pickup Pincode" required />
+
+  <h4>Receiver</h4>
+  <input name="receiverName" placeholder="Receiver Name" required />
+  <input name="receiverPhone" placeholder="Receiver Phone" required />
+  <input name="deliveryPincode" placeholder="Delivery Pincode" required />
+
+  <select name="size" required>
+    <option value="small">Small</option>
+    <option value="medium">Medium</option>
+    <option value="large">Large</option>
+  </select>
+
+  <button type="button" onclick="getEstimate()">Get Price</button>
+
+  <div id="estimateBox" style="display:none">
+    <p>Courier: <span id="courier"></span></p>
+    <p>Price: ₹<span id="price"></span></p>
+    <button type="submit">Confirm & Create Order</button>
+  </div>
+</form>
+
+<script>
+async function getEstimate() {
+  const data = Object.fromEntries(new FormData(parcelForm));
+
+  const res = await fetch("/api/shiprocket/estimate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  const r = await res.json();
+  document.getElementById("courier").innerText = r.courier;
+  document.getElementById("price").innerText = r.price;
+  document.getElementById("estimateBox").style.display = "block";
+}
+
+parcelForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(parcelForm));
+
+  await fetch("/api/shiprocket/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  alert("Order created!");
+});
+</script>

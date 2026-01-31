@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipment Confirmed | LogisticsApp</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --bg: #f9fafb;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --radius: 16px;
+        }
+
+        body {
+            background-color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 40px 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .success-container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .status-banner {
+            background-color: #ecfdf5;
+            padding: 40px 20px;
+        }
+
+        .check-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 16px;
+            box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.1);
+        }
+
+        .status-banner h2 {
+            margin: 0;
+            color: #065f46;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .order-details {
+            padding: 32px;
+            text-align: left;
+        }
+
+        .info-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .info-row:last-child { margin-bottom: 0; }
+
+        .label { color: var(--text-light); font-size: 0.9rem; }
+        .value { color: var(--text); font-weight: 600; font-size: 0.9rem; }
+
+        /* Simple Stepper/Timeline */
+        .timeline {
+            margin-top: 24px;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .step {
+            position: relative;
+            padding-bottom: 24px;
+            font-size: 0.9rem;
+        }
+
+        .step::before {
+            content: "";
+            position: absolute;
+            left: -21px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            background: #cbd5e1;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        .step.active::before {
+            background: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+        }
+
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            left: -16px;
+            top: 16px;
+            width: 2px;
+            height: calc(100% - 10px);
+            background: #e2e8f0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            padding: 0 32px 32px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 0.9rem;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-outline {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+
+<div class="success-container">
+    <div class="status-banner">
+        <div class="check-icon">✓</div>
+        <h2>Shipment Placed!</h2>
+        <p style="color: #047857; margin-top: 8px;">Your parcel is ready for pickup.</p>
+    </div>
+
+    <div class="order-details">
+        <div class="info-card">
+            <div class="info-row">
+                <span class="label">Order ID</span>
+                <span class="value"><%= parcel.customId %></span>
+            </div>
+            <div class="info-row">
+                <span class="label">Courier</span>
+                <span class="value"><%= parcel.transitInfo.courier %></span>
+            </div>
+            <div class="info-row">
+                <span class="label">Status</span>
+                <span class="value" style="color: var(--primary);"><%= parcel.status.toUpperCase() %></span>
+            </div>
+        </div>
+
+        <div class="timeline">
+            <div class="step active">
+                <strong>Payment Confirmed</strong>
+                <div class="label">Your shipment has been created</div>
+            </div>
+            <div class="step">
+                <strong>Awaiting Pickup</strong>
+                <div class="label">Courier will arrive shortly</div>
+            </div>
+            <div class="step">
+                <strong>In Transit</strong>
+                <div class="label">On the way to destination</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        <a href="/track/<%= parcel.accessCode %>" class="btn btn-outline">Track Parcel</a>
+    </div>
+</div>
+
+</body>
+</html>

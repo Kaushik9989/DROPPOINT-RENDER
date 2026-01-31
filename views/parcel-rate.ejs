@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Courier | LogisticsApp</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f9fafb;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --radius: 12px;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            margin: 0;
+            padding: 40px 16px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h4 {
+            font-size: 1.75rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .pincode-badge {
+            background: #e0e7ff;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Courier List Styling */
+        .courier-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .courier-card {
+            background: var(--white);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 40px 2fr 1fr 1fr 1fr;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .courier-card:hover {
+            border-color: #c7d2fe;
+            background-color: #fcfdff;
+        }
+
+        /* Checkbox styling */
+        .courier-card input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Highlight selected card */
+        .courier-card:has(input:checked) {
+            border-color: var(--primary);
+            background-color: #f5f3ff;
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+        }
+
+        .courier-name { font-weight: 600; color: var(--text); }
+        .courier-rate { font-weight: 700; color: var(--primary); font-size: 1.1rem; }
+        .label-sm { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; display: block; }
+
+        /* Information Box */
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+
+        .info-box h5 { margin: 0 0 10px 0; color: #1e40af; font-size: 1rem; }
+        .info-box ul { margin: 0; padding-left: 20px; color: #1e3a8a; }
+        .info-box li { margin-bottom: 8px; }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            padding: 18px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .submit-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Mobile Viewport */
+        @media (max-width: 768px) {
+            .courier-card {
+                grid-template-columns: 40px 1fr 1fr;
+                gap: 15px;
+            }
+            .hide-mobile { display: none; }
+            .courier-rate { grid-column: 3; text-align: right; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h4>🚚 Choose Courier Service</h4>
+        <p>Delivery to <span class="pincode-badge"><%= parcel.delivery_pincode %></span></p>
+    </div>
+
+    <form method="POST" action="/parcel/select-courier/<%= parcel._id %>">
+        
+        <div class="courier-list">
+            <% couriers.forEach(courier => { 
+                const now = new Date();
+                const hour = now.getHours();
+                let pickupText = (hour < 14) ? "Today (before 6 PM)" : "Next business day";
+            %>
+                <label class="courier-card">
+                    <input type="radio" name="courier_code" value="<%= courier.courier_company_id %>" required>
+                    
+                    <div class="details">
+                        <span class="label-sm">Provider</span>
+                        <div class="courier-name"><%= courier.courier_name %></div>
+                        <div class="hide-mobile" style="font-size: 0.8rem; color: var(--text-light)">
+                            ⭐ <%= courier.rating || "4.2" %> Rating
+                        </div>
+                    </div>
+
+                    <div class="hide-mobile">
+                        <span class="label-sm">Pickup</span>
+                        <div style="font-size: 0.9rem;"><%= pickupText %></div>
+                    </div>
+
+                    <div>
+                        <span class="label-sm">ETD</span>
+                        <div style="font-size: 0.9rem;"><%= courier.etd || "2–5 days" %></div>
+                    </div>
+
+                    <div class="courier-rate">
+                        <span class="label-sm">Price</span>
+                        ₹<%= courier.rate %>
+                    </div>
+                </label>
+            <% }) %>
+        </div>
+
+        <div class="info-box">
+            <h5>Understanding Delivery Times</h5>
+            <ul>
+                <li><strong>ETD (Estimated Time of Delivery):</strong> The transit time once the parcel leaves our facility.</li>
+                <li><strong>Pickup:</strong> Couriers typically collect between 2 PM and 6 PM. Orders placed after 2 PM move to the next business day.</li>
+            </ul>
+        </div>
+
+        <button type="submit" class="submit-btn">
+            Continue with Selected Courier
+        </button>
+    </form>
+</div>
+
+<script>
+    // Optional: Make the whole card clickable for better UX
+    document.querySelectorAll('.courier-card').forEach(card => {
+        card.addEventListener('click', () => {
+            card.querySelector('input').checked = true;
+        });
+    });
+</script>
+
+</body>
+</html>

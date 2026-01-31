@@ -5010,6 +5010,462 @@ app.post("/api/delivery-request/verify-and-create", async (req, res) => {
 });
 
 
+////// FORM FROM KISOK SEND FLOW
+
+app.get("/create-parcel", async (req, res) => {
+  const { senderPhone } = req.query;   // 👈 from ?senderPhone=9876543210
+
+  res.render("parcel-create", {
+    senderPhone: senderPhone || ""
+  });
+});
+
+app.post("/api/parcel/create", async (req, res) => {
+
+  function genCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  try {
+    const parcel = await Parcel2.create({
+      senderName: req.body.senderName,
+      senderPhone: req.body.senderPhone,
+
+      receiverName: req.body.receiverName,
+      receiverPhone: req.body.receiverPhone,
+
+      delivery_address: req.body.delivery_address,
+      delivery_city: req.body.delivery_city,
+      delivery_state: req.body.delivery_state,
+      delivery_pincode: req.body.delivery_pincode,
+
+      size: req.body.size,
+
+      receiverDeliveryMethod: "courier",
+
+      accessCode: genCode(),
+      modifyCode: genCode(),
+      customId: "PARCEL-" + Date.now(),
+
+      status: "awaiting_payment",
+      paymentStatus: "pending"
+    });
+
+    res.redirect(`/parcel/rate/${parcel._id}`);
+  } catch (e) {
+    res.send("Parcel creation failed");
+  }
+});
+
+
+app.get("/parcel/rate/:id", async (req, res) => {
+  const axios = require("axios");
+  const parcel = await Parcel2.findById(req.params.id);
+
+  if (!parcel) return res.send("Parcel not found");
+
+  // 🔑 Shiprocket Auth
+  const tokenRes = await axios.post(
+    "https://apiv2.shiprocket.in/v1/external/auth/login",
+    {
+      email: process.env.SHIPROCKET_EMAIL,
+      password: process.env.SHIPROCKET_PASSWORD
+    }
+  );
+  const token = tokenRes.data.token;
+
+  // 📦 Serviceability
+  const rateRes = await axios.get(
+    "https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        pickup_postcode: "560001",
+        delivery_postcode: parcel.delivery_pincode,
+        weight:
+          parcel.size === "small" ? 0.5 :
+          parcel.size === "medium" ? 1 : 2,
+        cod: 0
+      }
+    }
+  );
+
+  const couriers = rateRes.data?.data?.available_courier_companies || [];
+
+  if (couriers.length === 0) {
+    return res.send("No courier available for this pincode");
+  }
+
+  res.render("parcel-rate", {
+    parcel,
+    couriers
+  });
+});
+
+app.post("/parcel/select-courier/:id", async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.send("Parcel not found");
+
+  const courierCode = req.body.courier_code;
+
+  // 🔐 Re-fetch rates to match courier
+  const axios = require("axios");
+  const tokenRes = await axios.post(
+    "https://apiv2.shiprocket.in/v1/external/auth/login",
+    {
+      email: process.env.SHIPROCKET_EMAIL,
+      password: process.env.SHIPROCKET_PASSWORD
+    }
+  );
+  const token = tokenRes.data.token;
+
+  const rateRes = await axios.get(
+    "https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      params: {
+        pickup_postcode: "560001",
+        delivery_postcode: parcel.delivery_pincode,
+        weight:
+          parcel.size === "small" ? 0.5 :
+          parcel.size === "medium" ? 1 : 2,
+        cod: 0
+      }
+    }
+  );
+
+  const courier = rateRes.data.data.available_courier_companies.find(
+    c => String(c.courier_company_id) === String(courierCode)
+  );
+
+  if (!courier) {
+    return res.send("Invalid courier selected");
+  }
+
+  // ✅ SAVE CHOICE
+  parcel.shiprocketQuote = {
+    courier_name: courier.courier_name,
+    estimated_cost: courier.rate,
+    etd: courier.etd
+  };
+
+  parcel.transitInfo = parcel.transitInfo || {};
+  parcel.transitInfo.courier = courier.courier_name;
+  parcel.transitInfo.courierCode = courier.courier_company_id;
+  parcel.transitInfo.rate = courier.rate;
+  parcel.transitInfo.etd = courier.etd;
+
+  parcel.markModified("transitInfo");
+  await parcel.save();
+
+  res.redirect(`/parcel/pay/${parcel._id}`);
+});
+
+app.get("/parcel/pay/:id", async (req, res) => {
+  const parcel = await Parcel2.findById(req.params.id);
+  if (!parcel) return res.send("Parcel not found");
+
+  res.render("parcel-pay", { parcel });
+});
+
+
+app.post("/api/razorpay/order", async (req, res) => {
+  const { parcelId } = req.body;
+
+  const parcel = await Parcel2.findById(parcelId);
+  if (!parcel) return res.status(404).send("Parcel not found");
+
+  const amount = Number(parcel.shiprocketQuote.estimated_cost) * 100; // paise
+
+  const order = await razorpay.orders.create({
+    amount,
+    currency: "INR",
+    receipt: parcel.customId,
+    payment_capture: 1
+  });
+
+  parcel.razorpayOrderId = order.id;
+  await parcel.save();
+
+  res.json({
+    orderId: order.id,
+    amount: order.amount,
+    key: process.env.RAZORPAY_KEY_ID
+  });
+});
+
+app.post("/api/razorpay/verify", async (req, res) => {
+  const {
+    razorpay_payment_id,
+    razorpay_order_id,
+    razorpay_signature,
+    parcelId
+  } = req.body;
+  console.log("RAZORPAY VERIFY BODY:", req.body);
+  const sign = razorpay_order_id + "|" + razorpay_payment_id;
+  const expected = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(sign)
+    .digest("hex");
+
+  if (expected !== razorpay_signature) {
+    return res.status(400).send("Payment verification failed");
+  }
+
+
+  await Parcel2.findByIdAndUpdate(parcelId, {
+    paymentStatus: "completed",
+    status: "awaiting_drop"
+  });
+
+  res.redirect(`/parcel/shiprocket/${parcelId}`);
+});
+
+
+
+
+// app.post("/api/parcel/pay/:id", async (req, res) => {
+ 
+
+//   await Parcel2.findByIdAndUpdate(req.params.id, {
+//     paymentStatus: "completed",
+//     status: "awaiting_drop"
+//   });
+
+//   res.redirect(`/parcel/shiprocket/${req.params.id}`);
+// });
+
+app.get("/parcel/shiprocket/:id", async (req, res) => {
+  const axios = require("axios");
+  const parcel = await Parcel2.findById(req.params.id);
+
+  if (!parcel || !parcel.shiprocketQuote) {
+    return res.send("Invalid parcel or rate missing");
+  }
+
+  // ⛔ Prevent duplicate shipment creation
+  if (parcel.transitInfo?.awb) {
+    return res.render("parcel-success", { parcel });
+  }
+
+  try {
+    // 1️⃣ AUTH
+    const tokenRes = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/auth/login",
+      {
+        email: process.env.SHIPROCKET_EMAIL,
+        password: process.env.SHIPROCKET_PASSWORD
+      }
+    );
+    const token = tokenRes.data.token;
+
+    // 2️⃣ DIMENSIONS
+    const dimensions =
+      parcel.size === "small"
+        ? { length: 10, breadth: 10, height: 5, weight: 0.5 }
+        : parcel.size === "medium"
+        ? { length: 20, breadth: 15, height: 10, weight: 1 }
+        : { length: 30, breadth: 20, height: 15, weight: 2 };
+
+    // 3️⃣ CREATE ORDER
+    const orderRes = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
+      {
+        order_id: parcel.customId,
+        order_date: new Date().toISOString().split("T")[0],
+        pickup_location: "Home",
+
+        billing_customer_name: parcel.receiverName,
+        billing_last_name: "NA",
+        billing_address: parcel.delivery_address,
+        billing_city: parcel.delivery_city,
+        billing_state: parcel.delivery_state,
+        billing_country: "India",
+        billing_pincode: parcel.delivery_pincode,
+        billing_phone: parcel.receiverPhone,
+
+        shipping_is_billing: true,
+
+        order_items: [{
+          name: "Parcel",
+          sku: "PARCEL-001",
+          units: 1,
+          selling_price: Number(parcel.shiprocketQuote.estimated_cost),
+          discount: 0,
+          tax: 0,
+          hsn: "0000",
+          is_document: 0
+        }],
+
+        payment_method: "Prepaid",
+        sub_total: Number(parcel.shiprocketQuote.estimated_cost),
+
+        ...dimensions
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const shipmentId = orderRes.data.shipment_id;
+
+    // 4️⃣ ASSIGN AWB (ARRAY IS MANDATORY)
+    const awbRes = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
+      { shipment_id: [shipmentId] },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // ⏳ Shiprocket race-condition buffer
+    await new Promise(r => setTimeout(r, 3000));
+
+    // 5️⃣ PICKUP (SAFE)
+    try {
+      await axios.post(
+        "https://apiv2.shiprocket.in/v1/external/courier/generate/pickup",
+        { shipment_id: [shipmentId] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (pickupErr) {
+      console.warn("Pickup pending:", pickupErr.response?.data);
+    }
+
+    // 6️⃣ SAVE (SAFE MUTATION)
+    parcel.transitInfo = parcel.transitInfo || {};
+    parcel.transitInfo.courier = orderRes.data.courier_name;
+    parcel.transitInfo.shiprocketOrderId = orderRes.data.order_id;
+    parcel.transitInfo.shiprocketCourierId = shipmentId;
+   parcel.transitInfo.awb = awbRes.data.response.data.awb_code;
+
+    parcel.transitInfo.rate = parcel.shiprocketQuote.estimated_cost;
+    parcel.transitInfo.etd = parcel.shiprocketQuote.etd;
+    parcel.transitInfo.startedAt = new Date();
+
+   
+    parcel.markModified("transitInfo");
+    await parcel.save();
+
+    console.log("✅ AWB SAVED:", parcel.transitInfo.awb);
+
+    res.render("parcel-success", { parcel });
+
+  } catch (err) {
+    console.error("Shiprocket Finalisation Error:", err.response?.data || err);
+    res.status(500).send("Shipment creation failed");
+  }
+});
+
+
+
+
+// app.get("/parcel/shiprocket/awb/:id", async (req, res) => {
+//   const axios = require("axios");
+
+//   const parcel = await Parcel2.findById(req.params.id);
+
+//   const tokenRes = await axios.post(
+//     "https://apiv2.shiprocket.in/v1/external/auth/login",
+//     {
+//       email: process.env.SHIPROCKET_EMAIL,
+//       password: process.env.SHIPROCKET_PASSWORD
+//     }
+//   );
+
+//   const token = tokenRes.data.token;
+
+//   const awbRes = await axios.post(
+//     "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
+//     {
+//      shipment_id: [parcel.transitInfo.shiprocketCourierId] 
+//     },
+//     {
+//       headers: { Authorization: `Bearer ${token}` }
+//     }
+//   );
+//   console.log(awbRes);
+
+//   parcel.transitInfo.awb = awbRes.data.awb_code;
+//   await parcel.save();
+
+//   res.redirect(`/parcel/shiprocket/pickup/${parcel._id}`);
+// });
+
+// app.get("/parcel/shiprocket/pickup/:id", async (req, res) => {
+//   const axios = require("axios");
+
+//   const parcel = await Parcel2.findById(req.params.id);
+
+//   const tokenRes = await axios.post(
+//     "https://apiv2.shiprocket.in/v1/external/auth/login",
+//     {
+//       email: process.env.SHIPROCKET_EMAIL,
+//       password: process.env.SHIPROCKET_PASSWORD
+//     }
+//   );
+
+//   const token = tokenRes.data.token;
+
+//   await axios.post(
+//     "https://apiv2.shiprocket.in/v1/external/courier/generate/pickup",
+//     {
+//       shipment_id: [parcel.transitInfo.shiprocketCourierId]
+//     },
+//     {
+//       headers: { Authorization: `Bearer ${token}` }
+//     }
+//   );
+
+//   parcel.status = "in_transit";
+//   parcel.transitInfo.startedAt = new Date();
+//   await parcel.save();
+
+//   res.render("parcel-finalised", { parcel });
+// });
+
+
+
+app.get("/track/:accessCode", async (req, res) => {
+  const axios = require("axios");
+
+  const parcel = await Parcel2.findOne({
+    accessCode: req.params.accessCode
+  });
+
+  if (!parcel) {
+    return res.send("Invalid tracking code");
+  }
+
+  if (!parcel.transitInfo || !parcel.transitInfo.awb) {
+    return res.render("parcel-track-pending", { parcel });
+  }
+
+  try {
+    // 🔐 Shiprocket Auth
+    const tokenRes = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/auth/login",
+      {
+        email: process.env.SHIPROCKET_EMAIL,
+        password: process.env.SHIPROCKET_PASSWORD
+      }
+    );
+    const token = tokenRes.data.token;
+
+    // 📍 Track using AWB
+    const trackRes = await axios.get(
+      `https://apiv2.shiprocket.in/v1/external/courier/track/awb/${parcel.transitInfo.awb}`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+
+    res.render("parcel-track", {
+      parcel,
+      tracking: trackRes.data
+    });
+
+  } catch (err) {
+    console.error("Tracking Error:", err.response?.data || err.message);
+    res.send("Unable to fetch tracking details");
+  }
+});
 
 
 

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create & Ship Parcel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial; background:#f4f6fb; padding:20px }
+    .card { max-width:700px; margin:auto; background:#fff; padding:20px; border-radius:8px }
+    h3 { margin-top:20px }
+    input, button {
+      width:100%; padding:10px; margin-top:8px
+    }
+    button {
+      background:#2563eb; color:white; border:none; border-radius:6px;
+      cursor:pointer; margin-top:20px
+    }
+    pre { background:#f1f5f9; padding:10px; margin-top:20px }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>📦 Create Parcel & Ship</h2>
+
+  <h3>Pickup Details</h3>
+  <input id="pickup_name" placeholder="Pickup Name" />
+  <input id="pickup_phone" placeholder="Pickup Phone" />
+  <input id="pickup_address" placeholder="Pickup Address" />
+  <input id="pickup_city" placeholder="Pickup City" />
+  <input id="pickup_state" placeholder="Pickup State" />
+  <input id="pickup_pincode" placeholder="Pickup Pincode" />
+
+  <h3>Delivery Details</h3>
+  <input id="delivery_name" placeholder="Receiver Name" />
+  <input id="delivery_phone" placeholder="Receiver Phone" />
+  <input id="delivery_address" placeholder="Delivery Address" />
+  <input id="delivery_city" placeholder="Delivery City" />
+  <input id="delivery_state" placeholder="Delivery State" />
+  <input id="delivery_pincode" placeholder="Delivery Pincode" />
+
+  <h3>Parcel</h3>
+  <input id="weight" placeholder="Weight (kg)" />
+  <input id="length" placeholder="Length (cm)" />
+  <input id="breadth" placeholder="Breadth (cm)" />
+  <input id="height" placeholder="Height (cm)" />
+  <input id="cost" placeholder="Parcel Value (₹)" />
+
+  <button onclick="submitParcel()">Create & Ship</button>
+
+  <pre id="output"></pre>
+</div>
+
+<script>
+async function submitParcel() {
+  const get = id => document.getElementById(id).value;
+  const output = document.getElementById("output");
+
+  output.textContent = "⏳ Creating parcel & shipment...";
+
+  const payload = {
+    pickup: {
+      name: get("pickup_name"),
+      phone: get("pickup_phone"),
+      address: get("pickup_address"),
+      city: get("pickup_city"),
+      state: get("pickup_state"),
+      pincode: get("pickup_pincode")
+    },
+    delivery: {
+      name: get("delivery_name"),
+      phone: get("delivery_phone"),
+      address: get("delivery_address"),
+      city: get("delivery_city"),
+      state: get("delivery_state"),
+      pincode: get("delivery_pincode")
+    },
+    parcel: {
+      weight: Number(get("weight")),
+      length: Number(get("length")),
+      breadth: Number(get("breadth")),
+      height: Number(get("height")),
+      cost: Number(get("cost"))
+    }
+  };
+
+  const res = await fetch("/api/parcel/create-and-ship", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  output.textContent = JSON.stringify(data, null, 2);
+}
+</script>
+
+</body>
+</html>
